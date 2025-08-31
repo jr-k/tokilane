@@ -1,0 +1,48 @@
+# Fichiers et dossiers à ignorer lors du build Docker
+
+# Données et fichiers temporaires
+data/
+files/
+thumbs/
+*.db
+*.log
+
+# Dépendances et build artifacts
+node_modules/
+dist/
+bin/
+
+# Git
+.git/
+.gitignore
+
+# IDE et éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environnement
+.env
+.env.*
+
+# Documentation
+README.md
+docs/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Tests
+*.test
+coverage.out

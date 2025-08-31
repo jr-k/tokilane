@@ -1,0 +1,38 @@
+# Binaires
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+go.work
+
+# Frontend
+node_modules/
+dist/
+.DS_Store
+*.local
+
+# Environnement
+.env
+
+# Données
+data/
+files/
+thumbs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+Thumbs.db

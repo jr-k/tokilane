@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  tokilane:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${PORT:-1323}:1323"
+    volumes:
+      # Monter un dossier local pour les fichiers à indexer
+      - "${FILES_HOST_PATH:-./files}:/app/files"
+      # Persister la base de données et les miniatures
+      - tokilane_data:/app/data
+    environment:
+      - PORT=1323
+      - FILES_ROOT=/app/files
+      - DB_PATH=/app/data/app.db
+      - DEBUG=${DEBUG:-false}
+      - ENABLE_UPLOAD=${ENABLE_UPLOAD:-true}
+      - ALLOWED_EXT=${ALLOWED_EXT:-.pdf,.png,.jpg,.jpeg,.gif,.webp,.svg,.txt,.md,.docx,.xlsx,.zip,.mp4,.mp3}
+      - MAX_UPLOAD_SIZE=${MAX_UPLOAD_SIZE:-100}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:1323/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.docker.compose.project=tokilane"
+      - "description=Tokilane - Timeline de fichiers"
+
+  # Service optionnel de développement avec Nginx pour servir des fichiers statiques
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - "${FILES_HOST_PATH:-./files}:/usr/share/nginx/html/files:ro"
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - tokilane
+    profiles:
+      - dev
+    labels:
+      - "description=Nginx pour servir les fichiers statiques en développement"
+
+volumes:
+  tokilane_data:
+    driver: local
+    labels:
+      - "com.docker.compose.project=tokilane"
+      - "description=Données persistantes de Tokilane (DB et miniatures)"
+
+# Configuration pour différents environnements
+# Utilisation :
+#   - Production : docker-compose up
+#   - Développement : docker-compose --profile dev up
+#   - Build seulement : docker-compose build

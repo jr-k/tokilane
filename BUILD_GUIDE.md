@@ -48,7 +48,7 @@ docker run -d \
   -v ./files:/app/files \
   -v ./data:/app/data \
   --name tokilane \
-  tokilane:prod
+  jierka/tokilane:latest
 ```
 
 ### Développement local

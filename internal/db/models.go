@@ -7,28 +7,28 @@ import (
 	"gorm.io/gorm"
 )
 
-// FileItem représente un fichier indexé dans la base de données
+// FileItem represents an indexed file in the database
 type FileItem struct {
 	ID        string    `gorm:"primaryKey" json:"id"`                    // UUID
-	AbsPath   string    `gorm:"uniqueIndex;not null" json:"abs_path"`    // Chemin absolu
-	Name      string    `gorm:"not null" json:"name"`                    // Nom du fichier
+	AbsPath   string    `gorm:"uniqueIndex;not null" json:"abs_path"`    // Absolute path
+	Name      string    `gorm:"not null" json:"name"`                    // File name
 	Ext       string    `gorm:"index" json:"ext"`                        // Extension
 	Mime      string    `json:"mime"`                                    // Type MIME
-	Size      int64     `json:"size"`                                    // Taille en octets
-	CreatedAt time.Time `gorm:"index" json:"created_at"`                 // Date de création du fichier
-	Hash      string    `gorm:"index" json:"hash"`                       // SHA256 pour déduplication
-	ThumbPath *string   `json:"thumb_path,omitempty"`                    // Chemin de la miniature (si image)
-	AddedAt   time.Time `gorm:"autoCreateTime" json:"added_at"`          // Date d'indexation
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`        // Dernière mise à jour
+	Size      int64     `json:"size"`                                    // Size in bytes
+	CreatedAt time.Time `gorm:"index" json:"created_at"`                 // File creation date
+	Hash      string    `gorm:"index" json:"hash"`                       // SHA256 for deduplication
+	ThumbPath *string   `json:"thumb_path,omitempty"`                    // Thumbnail path (if image)
+	AddedAt   time.Time `gorm:"autoCreateTime" json:"added_at"`          // Indexing date
+	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`        // Last update
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`  // Soft delete
 }
 
-// TableName spécifie le nom de la table
+// TableName specifies the table name
 func (FileItem) TableName() string {
 	return "file_items"
 }
 
-// IsPreviewable détermine si le fichier peut être prévisualisé
+// IsPreviewable determines if the file can be previewed
 func (f *FileItem) IsPreviewable() bool {
 	switch f.Mime {
 	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml":
@@ -42,12 +42,12 @@ func (f *FileItem) IsPreviewable() bool {
 	}
 }
 
-// HasThumbnail vérifie si le fichier a une miniature
+// HasThumbnail checks if the file has a thumbnail
 func (f *FileItem) HasThumbnail() bool {
 	return f.ThumbPath != nil && *f.ThumbPath != ""
 }
 
-// IsImage vérifie si le fichier est une image
+// IsImage checks if the file is an image
 func (f *FileItem) IsImage() bool {
 	switch f.Mime {
 	case "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml":
@@ -57,7 +57,7 @@ func (f *FileItem) IsImage() bool {
 	}
 }
 
-// FormatSize retourne la taille formatée pour l'affichage
+// FormatSize returns the formatted size for display
 func (f *FileItem) FormatSize() string {
 	const unit = 1024
 	if f.Size < unit {
@@ -71,7 +71,7 @@ func (f *FileItem) FormatSize() string {
 	return fmt.Sprintf("%.1f %cB", float64(f.Size)/float64(div), "KMGTPE"[exp])
 }
 
-// FileItemResponse structure pour les réponses API
+// FileItemResponse structure for API responses
 type FileItemResponse struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -85,7 +85,7 @@ type FileItemResponse struct {
 	ThumbUrl    string    `json:"thumb_url,omitempty"`
 }
 
-// ToResponse convertit FileItem en FileItemResponse
+// ToResponse converts FileItem to FileItemResponse
 func (f *FileItem) ToResponse() FileItemResponse {
 	resp := FileItemResponse{
 		ID:            f.ID,

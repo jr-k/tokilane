@@ -18,7 +18,7 @@ import (
 	"tokilane/internal/files"
 )
 
-// Handlers contient tous les handlers de l'application
+// Handlers contains all application handlers
 type Handlers struct {
 	config       *config.Config
 	repo         *db.FileItemRepository
@@ -26,7 +26,7 @@ type Handlers struct {
 	indexer      *files.Indexer
 }
 
-// NewHandlers crée une nouvelle instance des handlers
+// NewHandlers creates a new handlers instance
 func NewHandlers(cfg *config.Config, repo *db.FileItemRepository, thumbnailSvc *files.ThumbnailService, indexer *files.Indexer) *Handlers {
 	return &Handlers{
 		config:       cfg,
@@ -36,27 +36,27 @@ func NewHandlers(cfg *config.Config, repo *db.FileItemRepository, thumbnailSvc *
 	}
 }
 
-// TimelinePage affiche la page principale de la timeline
+// TimelinePage displays the main timeline page
 func (h *Handlers) TimelinePage(c echo.Context) error {
-	// Pour l'instant, servir le fichier HTML statique
-	// En production, cela sera géré par Vite build
+	// For now, serve the static HTML file
+	// In production, this will be handled by Vite build
 	return c.File("web/index.html")
 }
 
-// GetTimelineData récupère les données pour la timeline
+// GetTimelineData retrieves the data for the timeline
 func (h *Handlers) GetTimelineData(c echo.Context) error {
-	// Récupérer les filtres depuis les paramètres de requête
+	// Retrieve the filters from the query parameters
 	filters := h.parseFilters(c)
 
-	// Récupérer les fichiers groupés par date
+	// Retrieve the files grouped by date
 	groupedFiles, err := h.repo.GetGroupedByDate(filters)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Erreur lors de la récupération des fichiers",
+			"error": "Error retrieving files",
 		})
 	}
 
-	// Convertir en format pour le frontend
+	// Convert to format for the frontend
 	timelineData := make(map[string]interface{})
 	for date, items := range groupedFiles {
 		var responseItems []db.FileItemResponse
@@ -66,15 +66,15 @@ func (h *Handlers) GetTimelineData(c echo.Context) error {
 		timelineData[date] = responseItems
 	}
 
-	// Compter le total de fichiers pour les statistiques
+	// Count the total number of files for statistics
 	totalResult, err := h.repo.List(db.ListFilters{Page: 1, PageSize: 1})
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Erreur lors du comptage des fichiers",
+			"error": "Error counting files",
 		})
 	}
 
-	// Préparer la réponse
+	// Prepare the response
 	response := map[string]interface{}{
 		"timeline":     timelineData,
 		"filters":      filters,
@@ -86,18 +86,31 @@ func (h *Handlers) GetTimelineData(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// ListFiles API pour récupérer la liste des fichiers avec pagination
+// GetAppConfig returns application configuration including language
+func (h *Handlers) GetAppConfig(c echo.Context) error {
+	response := map[string]interface{}{
+		"app_lang":     h.config.AppLang,
+		"version":      "1.0.0",
+		"upload":       h.config.EnableUpload,
+		"files_root":   h.config.FilesRoot,
+		"allowed_ext":  h.config.AllowedExt,
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+// ListFiles API to retrieve the list of files with pagination
 func (h *Handlers) ListFiles(c echo.Context) error {
 	filters := h.parseFilters(c)
 	
 	result, err := h.repo.List(filters)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Erreur lors de la récupération des fichiers",
+			"error": "Error retrieving files",
 		})
 	}
 
-	// Convertir en format response
+	// Convert to format response
 	var responseItems []db.FileItemResponse
 	for _, item := range result.Items {
 		responseItems = append(responseItems, item.ToResponse())
@@ -112,21 +125,21 @@ func (h *Handlers) ListFiles(c echo.Context) error {
 	})
 }
 
-// GetFile récupère les métadonnées détaillées d'un fichier
+// GetFile retrieves the detailed metadata of a file
 func (h *Handlers) GetFile(c echo.Context) error {
 	fileID := c.Param("id")
 	
 	item, err := h.repo.GetByID(fileID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Fichier non trouvé",
+			"error": "File not found",
 		})
 	}
 
-	// Informations supplémentaires pour les détails
+	// Additional information for the details
 	response := item.ToResponse()
 	
-	// Ajouter le chemin complet (pour copier le chemin)
+	// Add the full path (for copying the path)
 	detailedResponse := map[string]interface{}{
 		"id":             response.ID,
 		"name":           response.Name,
@@ -146,7 +159,7 @@ func (h *Handlers) GetFile(c echo.Context) error {
 	return c.JSON(http.StatusOK, detailedResponse)
 }
 
-// PreviewFile sert le contenu d'un fichier pour prévisualisation ou téléchargement
+// PreviewFile serves the content of a file for preview or download
 func (h *Handlers) PreviewFile(c echo.Context) error {
 	fileID := c.Param("id")
 	download := c.QueryParam("download") == "1"
@@ -154,31 +167,31 @@ func (h *Handlers) PreviewFile(c echo.Context) error {
 	item, err := h.repo.GetByID(fileID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Fichier non trouvé",
+			"error": "File not found",
 		})
 	}
 
-	// Vérifier que le fichier existe sur le disque
+	// Check if the file exists on the disk
 	if _, err := os.Stat(item.AbsPath); os.IsNotExist(err) {
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Fichier physique non trouvé",
+			"error": "Physical file not found",
 		})
 	}
 
-	// Valider le chemin pour éviter path traversal
+	// Validate path to prevent path traversal
 	if err := files.ValidatePath(h.config.FilesRoot, item.AbsPath); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
-			"error": "Accès non autorisé",
+			"error": "Access denied",
 		})
 	}
 
-	// Configurer les headers
+	// Configure the headers
 	c.Response().Header().Set("Content-Type", item.Mime)
 	
 	if download {
 		c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", item.Name))
 	} else {
-		// Pour la prévisualisation, ajouter cache headers
+		// For preview, add cache headers
 		c.Response().Header().Set("Cache-Control", "public, max-age=3600")
 		c.Response().Header().Set("ETag", fmt.Sprintf("\"%s\"", item.Hash))
 	}
@@ -186,43 +199,43 @@ func (h *Handlers) PreviewFile(c echo.Context) error {
 	return c.File(item.AbsPath)
 }
 
-// ThumbnailFile sert la miniature d'un fichier
+// ThumbnailFile serves the thumbnail of a file
 func (h *Handlers) ThumbnailFile(c echo.Context) error {
 	fileID := c.Param("id")
 	
 	item, err := h.repo.GetByID(fileID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Fichier non trouvé",
+			"error": "File not found",
 		})
 	}
 
-	// Vérifier si le fichier a une miniature
+	// Check if the file has a thumbnail
 	if !item.HasThumbnail() {
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Miniature non disponible",
+			"error": "Thumbnail not available",
 		})
 	}
 
-	// Vérifier que la miniature existe
+	// Check if the thumbnail exists
 	if _, err := os.Stat(*item.ThumbPath); os.IsNotExist(err) {
 		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Miniature physique non trouvée",
+			"error": "Physical thumbnail not found",
 		})
 	}
 
-	// Headers pour le cache
+	// Headers for the cache
 	c.Response().Header().Set("Content-Type", "image/jpeg")
 	c.Response().Header().Set("Cache-Control", "public, max-age=86400") // 24h
 	
 	return c.File(*item.ThumbPath)
 }
 
-// UploadFiles gère l'upload de fichiers
+// UploadFiles manages the upload of files
 func (h *Handlers) UploadFiles(c echo.Context) error {
 	if !h.config.EnableUpload {
 		return c.JSON(http.StatusForbidden, map[string]string{
-			"error": "Upload désactivé",
+			"error": "Upload disabled",
 		})
 	}
 
@@ -230,26 +243,26 @@ func (h *Handlers) UploadFiles(c echo.Context) error {
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Erreur lors du parsing du formulaire",
+			"error": "Error parsing form",
 		})
 	}
 
 	files := form.File["files"]
 	if len(files) == 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Aucun fichier fourni",
+			"error": "No files provided",
 		})
 	}
 
 	var uploadedFiles []string
 	var errors []string
 
-	// Créer le dossier d'upload avec la date actuelle
+	// Create the upload directory with the current date
 	now := time.Now()
 	uploadDir := filepath.Join(h.config.FilesRoot, "uploads", now.Format("2006"), now.Format("01"))
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Impossible de créer le dossier d'upload",
+			"error": "Unable to create upload directory",
 		})
 	}
 
@@ -274,70 +287,70 @@ func (h *Handlers) UploadFiles(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-// uploadSingleFile upload un fichier unique
+// uploadSingleFile upload a single file
 func (h *Handlers) uploadSingleFile(fileHeader *multipart.FileHeader, uploadDir string) (string, error) {
-	// Vérifier la taille
+	// Check the size
 	maxSize := h.config.MaxUploadSize * 1024 * 1024 // Convertir MB en bytes
 	if fileHeader.Size > maxSize {
-		return "", fmt.Errorf("fichier trop volumineux (max %dMB)", h.config.MaxUploadSize)
+		return "", fmt.Errorf("file too large (max %dMB)", h.config.MaxUploadSize)
 	}
 
-	// Vérifier l'extension
+	// Check the extension
 	ext := files.GetFileExtension(fileHeader.Filename)
 	if !h.config.IsAllowedExtension(ext) {
-		return "", fmt.Errorf("extension non autorisée: %s", ext)
+		return "", fmt.Errorf("extension not allowed: %s", ext)
 	}
 
-	// Ouvrir le fichier source
+	// Open the source file
 	src, err := fileHeader.Open()
 	if err != nil {
 		return "", err
 	}
 	defer src.Close()
 
-	// Créer le chemin de destination
+	// Create the destination path
 	destPath := filepath.Join(uploadDir, fileHeader.Filename)
 	
-	// Si un fichier avec le même nom existe, ajouter un suffixe
+	// If a file with the same name exists, add a suffix
 	counter := 1
 	for {
 		if _, err := os.Stat(destPath); os.IsNotExist(err) {
 			break
 		}
 		
-		// Ajouter un suffixe numérique
+		// Add a numeric suffix
 		name := strings.TrimSuffix(fileHeader.Filename, ext)
 		destPath = filepath.Join(uploadDir, fmt.Sprintf("%s_%d%s", name, counter, ext))
 		counter++
 	}
 
-	// Créer le fichier de destination
+	// Create the destination file
 	dst, err := os.Create(destPath)
 	if err != nil {
 		return "", err
 	}
 	defer dst.Close()
 
-	// Copier le contenu
+	// Copy the content
 	if _, err := io.Copy(dst, src); err != nil {
 		os.Remove(destPath) // Nettoyer en cas d'erreur
 		return "", err
 	}
 
-	// L'indexeur va automatiquement détecter le nouveau fichier
+	// The indexer will automatically detect the new file
 	// via fsnotify, mais on peut forcer une indexation immédiate
 	go func() {
-		time.Sleep(100 * time.Millisecond) // Petit délai pour que le fichier soit complètement écrit
+		time.Sleep(100 * time.Millisecond) // Small delay to ensure the file is completely written
 		if err := h.indexer.ScanAll(); err != nil {
-			fmt.Printf("Erreur lors de l'indexation après upload: %v\n", err)
+			fmt.Printf("Error during indexing after upload: %v\n", err)
 		}
 	}()
 
-	// Retourner un ID temporaire (le vrai ID sera généré lors de l'indexation)
+	// Return a temporary ID (the real ID will be generated during indexing)
 	return filepath.Base(destPath), nil
 }
 
-// parseFilters parse les filtres depuis les paramètres de requête
+// parseFilters parse the filters from the query parameters
 func (h *Handlers) parseFilters(c echo.Context) db.ListFilters {
 	filters := db.ListFilters{
 		Query:     c.QueryParam("q"),
@@ -346,21 +359,21 @@ func (h *Handlers) parseFilters(c echo.Context) db.ListFilters {
 		PageSize:  50,
 	}
 
-	// Parse page
+	// Parse the page
 	if pageStr := c.QueryParam("page"); pageStr != "" {
 		if page, err := strconv.Atoi(pageStr); err == nil && page > 0 {
 			filters.Page = page
 		}
 	}
 
-	// Parse page size
+	// Parse the page size
 	if pageSizeStr := c.QueryParam("page_size"); pageSizeStr != "" {
 		if pageSize, err := strconv.Atoi(pageSizeStr); err == nil && pageSize > 0 && pageSize <= 200 {
 			filters.PageSize = pageSize
 		}
 	}
 
-	// Parse dates
+	// Parse the dates
 	if dateFrom := c.QueryParam("date_from"); dateFrom != "" {
 		filters.DateFrom = &dateFrom
 	}
@@ -368,7 +381,7 @@ func (h *Handlers) parseFilters(c echo.Context) db.ListFilters {
 		filters.DateTo = &dateTo
 	}
 
-	// Parse sizes
+	// Parse the sizes
 	if minSizeStr := c.QueryParam("min_size"); minSizeStr != "" {
 		if minSize, err := strconv.ParseInt(minSizeStr, 10, 64); err == nil {
 			filters.MinSize = &minSize

@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
 import TimelineSeekbar from './pages/TimelineSeekbar'
 import TimelineExplorer from './pages/TimelineStandalone'
+import { useAppConfig } from './hooks/useAppConfig'
 
 type ViewMode = 'seekbar' | 'explorer'
 
 function App() {
-  // Charger la préférence depuis localStorage ou utiliser 'seekbar' par défaut
+  // Load app configuration from backend
+  const { isLoaded: configLoaded, error: configError } = useAppConfig()
+  
+  // Load preference from localStorage or use 'seekbar' as default
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     const saved = localStorage.getItem('tokilane-view-mode')
-    // Migration: convertir 'standalone' vers 'explorer'
+    // Migration: convert 'standalone' to 'explorer'
     if (saved === 'standalone') return 'explorer'
     return (saved === 'explorer' || saved === 'seekbar') ? saved : 'seekbar'
   })
@@ -65,6 +69,37 @@ function App() {
       body.classList.remove('mode-seekbar', 'mode-explorer')
     }
   }, [viewMode])
+
+  // Show loading screen while configuration is loading
+  if (!configLoaded) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        flexDirection: 'column',
+        gap: '1rem',
+        backgroundColor: '#0a0a0a',
+        color: 'white'
+      }}>
+        <div style={{
+          width: '2rem',
+          height: '2rem',
+          border: '3px solid rgba(255, 255, 255, 0.1)',
+          borderTop: '3px solid #ff0050',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <p>Loading application configuration...</p>
+        {configError && (
+          <p style={{ color: '#ff6b6b', fontSize: '0.875rem' }}>
+            Warning: {configError}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>

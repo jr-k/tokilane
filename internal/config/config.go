@@ -15,11 +15,12 @@ type Config struct {
 	AllowedExt     []string
 	DBPath         string
 	Debug          bool
-	MaxUploadSize  int64 // en MB
+	MaxUploadSize  int64 // in MB
+	AppLang        string // Application language
 }
 
 func Load() *Config {
-	// Charger le fichier .env s'il existe
+	// Load .env file if it exists
 	_ = godotenv.Load()
 
 	return &Config{
@@ -29,7 +30,8 @@ func Load() *Config {
 		AllowedExt:    getEnvSlice("ALLOWED_EXT", []string{".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".txt", ".md", ".docx", ".xlsx", ".zip", ".mp4", ".mp3"}),
 		DBPath:        getEnv("DB_PATH", "./data/app.db"),
 		Debug:         getEnvBool("DEBUG", true),
-		MaxUploadSize: getEnvInt64("MAX_UPLOAD_SIZE", 100), // 100MB par défaut
+		MaxUploadSize: getEnvInt64("MAX_UPLOAD_SIZE", 100), // 100MB by default
+		AppLang:       getEnv("APP_LANG", "en"), // English by default
 	}
 }
 
@@ -65,7 +67,7 @@ func getEnvSlice(key string, defaultValue []string) []string {
 	return defaultValue
 }
 
-// IsAllowedExtension vérifie si l'extension est autorisée
+// IsAllowedExtension checks if the extension is allowed
 func (c *Config) IsAllowedExtension(ext string) bool {
 	ext = strings.ToLower(ext)
 	for _, allowed := range c.AllowedExt {

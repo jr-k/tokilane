@@ -7,17 +7,17 @@ const SimpleTimeline: React.FC = () => {
 
   useEffect(() => {
     if (hasLoaded) {
-      console.log('Déjà chargé, pas de rechargement')
+      // console.log('Déjà chargé, pas de rechargement')
       return
     }
 
     const loadData = async () => {
       try {
-        console.log('Chargement des données...')
+        // console.log('Chargement des données...')
         setLoading(true)
         const response = await fetch('/api/timeline?page=1&page_size=50')
         const result = await response.json()
-        console.log('Données reçues:', result)
+        // console.log('Données reçues:', result)
         setData(result)
         setHasLoaded(true)
       } catch (error) {

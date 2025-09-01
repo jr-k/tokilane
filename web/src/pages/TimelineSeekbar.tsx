@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { FileItem, FileFilters } from '@/types'
 import { formatDate, getFileIcon, formatFileSize } from '@/lib/utils'
+import { useTranslation } from '@/lib/translations'
 import Header from '@/components/Header/Header'
 import { ViewMode } from '@/components/ViewSwitcher/ViewSwitcher'
 import styled from 'styled-components'
@@ -314,7 +315,7 @@ const DownloadButton = styled.button`
   }
 `
 
-// Panneau latéral
+// Side panel
 const SidePanel = styled.div`
   width: 320px;
   background: rgba(15, 15, 15, 0.95);
@@ -434,6 +435,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
   viewMode = 'seekbar',
   onViewModeChange 
 }) => {
+  const { t } = useTranslation()
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null)
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -444,7 +446,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
   const loadingRef = React.useRef(false)
   const sidePanelContentRef = React.useRef<HTMLDivElement>(null)
 
-  // Fonction pour charger les données
+  // Function to load data
   const loadTimelineData = useCallback(async () => {
     if (loadingRef.current) return
     
@@ -458,7 +460,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
       const data = await response.json()
       setTimelineData(data)
       
-      // Sélectionner automatiquement le premier fichier
+      // Automatically select the first file
       const allFiles = getAllFilesFromData(data)
       if (allFiles.length > 0) {
         setSelectedFile(allFiles[0])
@@ -503,7 +505,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
     }
   }, [])
 
-  // Effet pour charger les données au montage
+  // Effect to load data on mount
   useEffect(() => {
     loadTimelineData()
   }, [loadTimelineData])
@@ -785,10 +787,10 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                     $active={timeResolution === resolution}
                     onClick={() => setTimeResolution(resolution)}
                   >
-                    {resolution === 'second' ? 'Sec' : 
-                     resolution === 'minute' ? 'Min' : 
-                     resolution === 'hour' ? 'H' : 
-                     resolution === 'day' ? 'Jour' : 'Mois'}
+                    {resolution === 'second' ? t('time.sec') : 
+                     resolution === 'minute' ? t('time.min') : 
+                     resolution === 'hour' ? t('time.h') : 
+                     resolution === 'day' ? t('time.d') : t('time.m')}
                   </ResolutionButton>
                 ))}
               </ResolutionControls>
@@ -851,7 +853,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                       >
                         {file.name}<br/>
                         {formatDate(file.created_at)}
-                        {filesOnSameDate > 1 && ` (${filesOnSameDate} fichiers ce jour)`}
+                        {filesOnSameDate > 1 && ` (${filesOnSameDate} ${t('time.filesThisDay')})`}
                       </FileTooltip>
                     </React.Fragment>
                   )

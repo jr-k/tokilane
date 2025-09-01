@@ -14,29 +14,29 @@ import (
 )
 
 func main() {
-	// Charger la configuration
+	// Load configuration
 	cfg := config.Load()
 
-	log.Printf("Démarrage de Tokilane...")
-	log.Printf("Configuration: Port=%s, FilesRoot=%s, Debug=%v", cfg.Port, cfg.FilesRoot, cfg.Debug)
+	log.Printf("Starting Tokilane...")
+	log.Printf("Configuration: Port=%s, FilesRoot=%s, Debug=%v, AppLang=%s", cfg.Port, cfg.FilesRoot, cfg.Debug, cfg.AppLang)
 
-	// Créer les dossiers nécessaires
+	// Create necessary directories
 	if err := ensureDirectories(cfg); err != nil {
-		log.Fatalf("Erreur lors de la création des dossiers: %v", err)
+		log.Fatalf("Error creating directories: %v", err)
 	}
 
-	// Initialiser la base de données
+	// Initialize database
 	database, err := db.New(cfg.DBPath, cfg.Debug)
 	if err != nil {
-		log.Fatalf("Erreur lors de l'initialisation de la base de données: %v", err)
+		log.Fatalf("Error initializing database: %v", err)
 	}
 	defer func() {
 		if err := database.Close(); err != nil {
-			log.Printf("Erreur lors de la fermeture de la base de données: %v", err)
+			log.Printf("Error closing database: %v", err)
 		}
 	}()
 
-	// Initialiser l'indexeur de fichiers
+	// Initialize file indexer
 	indexerConfig := &files.IndexerConfig{
 		RootPath:   cfg.FilesRoot,
 		ThumbsPath: filepath.Join(filepath.Dir(cfg.DBPath), "thumbs"),
@@ -45,56 +45,56 @@ func main() {
 
 	indexer, err := files.NewIndexer(indexerConfig, database)
 	if err != nil {
-		log.Fatalf("Erreur lors de l'initialisation de l'indexeur: %v", err)
+		log.Fatalf("Error initializing indexer: %v", err)
 	}
 
-	// Démarrer l'indexeur
+	// Start indexer
 	if err := indexer.Start(); err != nil {
-		log.Fatalf("Erreur lors du démarrage de l'indexeur: %v", err)
+		log.Fatalf("Error starting indexer: %v", err)
 	}
 	defer func() {
 		if err := indexer.Stop(); err != nil {
-			log.Printf("Erreur lors de l'arrêt de l'indexeur: %v", err)
+			log.Printf("Error stopping indexer: %v", err)
 		}
 	}()
 
-	// Initialiser le serveur web
+	// Initialize web server
 	server := web.NewServer(cfg, database, indexer)
 
-	// Canal pour gérer l'arrêt gracieux
+	// Channel to handle graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// Démarrer le serveur dans une goroutine
+	// Start server in a goroutine
 	go func() {
 		if err := server.Start(); err != nil {
-			log.Printf("Erreur du serveur: %v", err)
+			log.Printf("Server error: %v", err)
 			quit <- syscall.SIGTERM
 		}
 	}()
 
-	// Optionnel: Écouter les événements de l'indexeur pour des logs
+	// Optional: Listen to indexer events for logging
 	go func() {
 		for event := range indexer.GetEventChannel() {
 			if cfg.Debug {
-				log.Printf("Événement fichier: %s - %s", event.Type, event.FilePath)
+				log.Printf("File event: %s - %s", event.Type, event.FilePath)
 			}
 		}
 	}()
 
-	// Attendre le signal d'arrêt
+	// Wait for shutdown signal
 	<-quit
-	log.Println("Arrêt du serveur...")
+	log.Println("Shutting down server...")
 
-	// Arrêt gracieux
+	// Graceful shutdown
 	if err := server.Stop(); err != nil {
-		log.Printf("Erreur lors de l'arrêt du serveur: %v", err)
+		log.Printf("Error shutting down server: %v", err)
 	}
 
-	log.Println("Serveur arrêté")
+	log.Println("Server stopped")
 }
 
-// ensureDirectories crée les dossiers nécessaires s'ils n'existent pas
+// ensureDirectories creates necessary directories if they don't exist
 func ensureDirectories(cfg *config.Config) error {
 	dirs := []string{
 		cfg.FilesRoot,
@@ -108,7 +108,7 @@ func ensureDirectories(cfg *config.Config) error {
 		}
 	}
 
-	// Créer un fichier d'exemple dans le dossier files si vide
+	// Create a sample file in the files folder if empty
 	if isEmpty, err := isDirEmpty(cfg.FilesRoot); err == nil && isEmpty {
 		createSampleFiles(cfg.FilesRoot)
 	}
@@ -116,7 +116,7 @@ func ensureDirectories(cfg *config.Config) error {
 	return nil
 }
 
-// isDirEmpty vérifie si un dossier est vide
+// isDirEmpty checks if a directory is empty
 func isDirEmpty(path string) (bool, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
@@ -125,36 +125,36 @@ func isDirEmpty(path string) (bool, error) {
 	return len(entries) == 0, nil
 }
 
-// createSampleFiles crée quelques fichiers d'exemple
+// createSampleFiles creates some sample files
 func createSampleFiles(rootPath string) {
-	sampleContent := `# Bienvenue dans Tokilane
+	sampleContent := `# Welcome to Tokilane
 
-Ceci est un fichier d'exemple pour démontrer les fonctionnalités de Tokilane.
+This is a sample file to demonstrate Tokilane's features.
 
-## Fonctionnalités
+## Features
 
-- 📁 Indexation automatique des fichiers
-- 🔍 Recherche et filtrage
-- 📅 Timeline organisée par date
-- 👁️  Aperçu des fichiers (PDF, images, texte)
-- 📤 Upload drag & drop
-- 🖼️  Miniatures automatiques
+- 📁 Automatic file indexing
+- 🔍 Search and filtering
+- 📅 Timeline organized by date
+- 👁️  File preview (PDF, images, text)
+- 📤 Drag & drop upload
+- 🖼️  Automatic thumbnails
 
-## Types de fichiers supportés
+## Supported file types
 
 - Images: JPG, PNG, GIF, WebP, SVG
 - Documents: PDF, TXT, MD
 - Archives: ZIP
-- Médias: MP4, MP3
+- Media: MP4, MP3
 - Office: DOCX, XLSX
 
-Vous pouvez ajouter vos propres fichiers dans le dossier 'files/' ou utiliser la fonction d'upload.
+You can add your own files to the 'files/' folder or use the upload feature.
 `
 
 	samplePath := filepath.Join(rootPath, "README.md")
 	if err := os.WriteFile(samplePath, []byte(sampleContent), 0644); err != nil {
-		log.Printf("Impossible de créer le fichier d'exemple: %v", err)
+		log.Printf("Unable to create sample file: %v", err)
 	} else {
-		log.Printf("Fichier d'exemple créé: %s", samplePath)
+		log.Printf("Sample file created: %s", samplePath)
 	}
 }

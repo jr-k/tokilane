@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { FileFilters } from '@/types'
 import { debounce } from '@/lib/utils'
+import { useTranslation } from '@/lib/translations'
 import {
   FilterContainer,
   FilterContent,
@@ -43,22 +44,52 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
   totalFiles = 0,
   className = '',
 }) => {
+  const { t } = useTranslation()
   const [localQuery, setLocalQuery] = useState(filters.query || '')
   
-  const debouncedSearch = debounce((query: string) => {
-    onFiltersChange({ ...filters, query, page: 1 })
-  }, 300)
+  const filtersRef = React.useRef(filters)
+  filtersRef.current = filters
+
+  const debouncedSearch = React.useMemo(
+    () => debounce((query: string) => {
+      onFiltersChange({ ...filtersRef.current, query, page: 1 })
+    }, 300),
+    [onFiltersChange]
+  )
 
   useEffect(() => {
     debouncedSearch(localQuery)
   }, [localQuery, debouncedSearch])
 
-  const popularExtensions = ['.pdf', '.jpg', '.png', '.txt', '.md', '.docx', '.mp4']
-  const availableExtensions = popularExtensions.filter(ext => 
-    allowedExtensions.includes(ext)
-  )
+  // Synchroniser localQuery avec filters.query venant de l'extérieur (seulement si différent)
+  useEffect(() => {
+    const externalQuery = filters.query || ''
+    if (localQuery !== externalQuery) {
+      setLocalQuery(externalQuery)
+    }
+  }, [filters.query]) // Pas de localQuery dans les deps pour éviter la boucle
 
+  const popularExtensions = ['.pdf', '.jpg', '.png', '.txt', '.md', '.docx', '.mp4']
+  
+  // Normaliser les extensions pour gérer les formats avec et sans point
+  const normalizedAllowedExtensions = allowedExtensions.map(ext => 
+    ext.startsWith('.') ? ext : `.${ext}`
+  )
+  
+  // Temporairement, forçons quelques extensions pour tester
+  let availableExtensions = popularExtensions.filter(ext => 
+    normalizedAllowedExtensions.includes(ext) || 
+    allowedExtensions.includes(ext) || 
+    allowedExtensions.includes(ext.substring(1))
+  )
+  
+  // Si aucune extension n'est disponible, affichons les populaires pour tester
+  if (availableExtensions.length === 0) {
+    availableExtensions = ['.pdf', '.jpg', '.png', '.mp4']
+  }
+  
   const handleExtensionFilter = (extension: string) => {
+    // console.log('Extension filter clicked:', extension)
     const newExt = filters.extension === extension ? '' : extension
     onFiltersChange({ ...filters, extension: newExt, page: 1 })
   }
@@ -118,7 +149,7 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
             </SearchIcon>
             <SearchInput
               type="text"
-              placeholder="Rechercher des fichiers..."
+              placeholder={t('filters.searchPlaceholder')}
               value={localQuery}
               onChange={(e) => setLocalQuery(e.target.value)}
             />
@@ -126,22 +157,22 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
           
           <StatsSection>
             <StatValue>{totalFiles}</StatValue>
-            <StatLabel>fichier{totalFiles > 1 ? 's' : ''}</StatLabel>
+            <StatLabel>{totalFiles > 1 ? t('filters.files') : t('filters.file')}</StatLabel>
           </StatsSection>
 
           {hasActiveFilters && (
-            <ClearButton onClick={clearAllFilters} title="Effacer tous les filtres">
+            <ClearButton onClick={clearAllFilters} title={t('filters.clearAll')}>
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Effacer
+              {t('filters.clear')}
             </ClearButton>
           )}
         </SearchSection>
 
         {availableExtensions.length > 0 && (
           <QuickFiltersSection>
-            <FilterLabel>Filtres :</FilterLabel>
+            <FilterLabel>{t('filters.filters')}</FilterLabel>
             {availableExtensions.map((ext) => (
               <ExtensionButton
                 key={ext}
@@ -161,23 +192,23 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </AdvancedFiltersIcon>
-            <AdvancedFiltersTitle>Filtres avancés</AdvancedFiltersTitle>
+            <AdvancedFiltersTitle>{t('filters.advancedFilters')}</AdvancedFiltersTitle>
           </AdvancedFiltersSummary>
           
           <AdvancedFiltersContent>
             <FilterGrid>
               <FilterGroup>
-                <FilterGroupLabel>Date de création</FilterGroupLabel>
+                <FilterGroupLabel>{t('filters.dateCreation')}</FilterGroupLabel>
                 <FilterInputGroup>
                   <FilterInput
                     type="date"
-                    placeholder="Du"
+                    placeholder={t('filters.from')}
                     value={filters.date_from || ''}
                     onChange={(e) => handleDateFromChange(e.target.value)}
                   />
                   <FilterInput
                     type="date"
-                    placeholder="Au"
+                    placeholder={t('filters.to')}
                     value={filters.date_to || ''}
                     onChange={(e) => handleDateToChange(e.target.value)}
                   />
@@ -185,18 +216,18 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
               </FilterGroup>
 
               <FilterGroup>
-                <FilterGroupLabel>Taille (MB)</FilterGroupLabel>
+                <FilterGroupLabel>{t('filters.sizeInMB')}</FilterGroupLabel>
                 <FilterInputGroup>
                   <FilterInput
                     type="number"
-                    placeholder="Taille min."
+                    placeholder={t('filters.minSize')}
                     min="0"
                     value={filters.min_size ? Math.round(filters.min_size / (1024 * 1024)) : ''}
                     onChange={(e) => handleSizeFilter('min', e.target.value)}
                   />
                   <FilterInput
                     type="number"
-                    placeholder="Taille max."
+                    placeholder={t('filters.maxSize')}
                     min="0"
                     value={filters.max_size ? Math.round(filters.max_size / (1024 * 1024)) : ''}
                     onChange={(e) => handleSizeFilter('max', e.target.value)}
@@ -205,7 +236,7 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
               </FilterGroup>
 
               <FilterGroup>
-                <FilterGroupLabel>Extension personnalisée</FilterGroupLabel>
+                <FilterGroupLabel>{t('filters.customExtension')}</FilterGroupLabel>
                 <FilterInput
                   type="text"
                   placeholder=".ext"
@@ -213,7 +244,7 @@ export const FiltersBar: React.FC<FiltersBarProps> = ({
                   onChange={(e) => onFiltersChange({ ...filters, extension: e.target.value, page: 1 })}
                 />
                 <FilterDescription>
-                  Exemples : .zip, .mp3, .xlsx
+                  {t('filters.extensionExamples')}
                 </FilterDescription>
               </FilterGroup>
             </FilterGrid>

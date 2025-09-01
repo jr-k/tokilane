@@ -146,7 +146,24 @@ export const downloadFile = async (id: string, filename: string): Promise<void> 
   }
 }
 
-// Fonction pour vérifier l'état du serveur
+// Function to get app configuration from backend
+export const getAppConfig = async (): Promise<{
+  app_lang: string
+  version?: string
+  upload?: boolean
+  files_root?: string
+  allowed_ext?: string[]
+}> => {
+  try {
+    return await apiFetch('/api/config')
+  } catch (error) {
+    // Fallback if config endpoint doesn't exist yet
+    console.warn('Config endpoint not available, using defaults')
+    return { app_lang: 'en' }
+  }
+}
+
+// Function to check server health
 export const healthCheck = async (): Promise<{
   status: string
   version: string
@@ -154,8 +171,8 @@ export const healthCheck = async (): Promise<{
   files_root: string
   allowed_ext: string[]
 }> => {
-  // Note: Cette route n'est pas encore implémentée côté serveur
-  // mais peut être ajoutée facilement
+  // Note: This route is not yet implemented server-side
+  // but can be easily added
   return apiFetch('/api/health')
 }
 

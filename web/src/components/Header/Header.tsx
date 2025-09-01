@@ -1,5 +1,6 @@
 import React from 'react'
 import ViewSwitcher, { ViewMode } from '../ViewSwitcher/ViewSwitcher'
+import { useTranslation } from '@/lib/translations'
 import {
   HeaderContainer,
   HeaderContent,
@@ -31,11 +32,12 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-  title = 'TokiLane',
+  title,
   totalFiles = 0,
   viewMode = 'seekbar',
   onViewModeChange
 }) => {
+  const { t } = useTranslation()
   const [currentTime, setCurrentTime] = React.useState(new Date())
 
   React.useEffect(() => {
@@ -72,17 +74,17 @@ export const Header: React.FC<HeaderProps> = ({
             </svg>
           </LogoIcon>
           
-          <TitleContainer>
-            <Title>{title}</Title>
-            <Subtitle>Timeline de vos fichiers</Subtitle>
-          </TitleContainer>
+                          <TitleContainer>
+                  <Title>{title || t('header.title')}</Title>
+                  <Subtitle>{t('header.subtitle')}</Subtitle>
+                </TitleContainer>
         </LogoSection>
 
         <ActionsSection>
           <StatsSection>
             <StatItem>
-              <StatValue>{totalFiles.toLocaleString('fr-FR')}</StatValue>
-              <StatLabel>Fichiers</StatLabel>
+              <StatValue>{totalFiles.toLocaleString()}</StatValue>
+              <StatLabel>{t('header.files')}</StatLabel>
             </StatItem>
             
             <Divider />
@@ -104,14 +106,14 @@ export const Header: React.FC<HeaderProps> = ({
 
             <ActionButton
               onClick={() => window.location.reload()}
-              title="Actualiser la page"
+              title={t('header.refresh')}
             >
               <ActionIcon>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </ActionIcon>
-              <ActionText>Actualiser</ActionText>
+              <ActionText>{t('header.refresh')}</ActionText>
             </ActionButton>
           </ActionsContainer>
         </ActionsSection>

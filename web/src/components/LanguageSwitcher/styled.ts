@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 
-export const ViewSwitcherContainer = styled.div`
+export const LanguageSwitcherContainer = styled.div`
   display: flex;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: ${({ theme }) => theme.borderRadius.lg};
@@ -8,30 +8,30 @@ export const ViewSwitcherContainer = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.2);
 `
 
-export const ViewButton = styled.button<{ $active: boolean }>`
+export const LanguageButton = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing[2]};
-  padding: ${({ theme }) => theme.spacing[2]} ${({ theme }) => theme.spacing[3]};
-  font-size: 0.875rem;
+  gap: ${({ theme }) => theme.spacing[1]};
+  padding: ${({ theme }) => theme.spacing[1]} ${({ theme }) => theme.spacing[2]};
+  font-size: 0.75rem;
   font-weight: 500;
-  background: ${({ $active }) => 
+  background: ${({ $active }) =>
     $active ? 'linear-gradient(45deg, #ff0050, #ff4081)' : 'transparent'
   };
-  color: ${({ $active }) => 
+  color: ${({ $active }) =>
     $active ? 'white' : 'rgba(255, 255, 255, 0.7)'
   };
   border: none;
   cursor: pointer;
   transition: all ${({ theme }) => theme.transitions.normal};
-  min-width: 100px;
+  min-width: 50px;
   justify-content: center;
 
   &:hover {
-    background: ${({ $active }) => 
+    background: ${({ $active }) =>
       $active ? 'linear-gradient(45deg, #ff0040, #ff3071)' : 'rgba(255, 255, 255, 0.1)'
     };
-    color: ${({ $active }) => 
+    color: ${({ $active }) =>
       $active ? 'white' : 'white'
     };
   }
@@ -46,16 +46,12 @@ export const ViewButton = styled.button<{ $active: boolean }>`
   }
 `
 
-export const ViewIcon = styled.span`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+export const LanguageIcon = styled.span`
+  font-size: 0.875rem;
+  line-height: 1;
 `
 
-export const ViewText = styled.span`
-  display: none;
-
-  @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
-    display: inline;
-  }
+export const LanguageText = styled.span`
+  font-weight: 600;
+  font-size: 0.75rem;
 `

@@ -12,12 +12,12 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,css,md,json}\""
   },
   "dependencies": {
+    "date-fns": "^3.0.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "styled-components": "^6.1.6",
-    "date-fns": "^3.0.6",
     "react-dropzone": "^14.2.3",
-    "react-pdf": "^7.6.0"
+    "react-pdf": "^7.6.0",
+    "styled-components": "^6.1.6"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
@@ -26,6 +26,7 @@
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "babel-plugin-styled-components": "^2.1.4",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",

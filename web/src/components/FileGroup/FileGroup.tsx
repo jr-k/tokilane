@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { FileItem } from '@/types'
 import { formatDate } from '@/lib/utils'
+import { useTranslation } from '@/lib/translations'
 import FileCard from '../FileCard/FileCard'
 import {
   GroupContainer,
@@ -22,8 +23,14 @@ interface FileGroupProps {
 }
 
 export const FileGroup: React.FC<FileGroupProps> = ({ date, files, onFileClick }) => {
+  const { t } = useTranslation()
   const formattedDate = formatDate(date + 'T00:00:00Z')
   const fileCount = files.length
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed)
+  }
 
   return (
     <GroupContainer>
@@ -32,31 +39,19 @@ export const FileGroup: React.FC<FileGroupProps> = ({ date, files, onFileClick }
           <DateInfo>
             <DateTitle>{formattedDate}</DateTitle>
             <FileCountBadge>
-              {fileCount} fichier{fileCount > 1 ? 's' : ''}
+              {fileCount} {fileCount > 1 ? t('filters.files') : t('filters.file')}
             </FileCountBadge>
           </DateInfo>
           
           <GroupActions>
             <ActionButton
-              title="Tout sélectionner"
-              onClick={() => {
-                console.log('Sélectionner tous les fichiers de', date)
-              }}
+              title={isCollapsed ? t('fileGroups.expandGroup') : t('fileGroups.collapseGroup')}
+              onClick={toggleCollapse}
             >
-              <ActionIcon>
-                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </ActionIcon>
-            </ActionButton>
-            
-            <ActionButton
-              title="Réduire/Étendre le groupe"
-              onClick={() => {
-                console.log('Toggle group', date)
-              }}
-            >
-              <ActionIcon>
+              <ActionIcon style={{ 
+                transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease'
+              }}>
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -66,15 +61,17 @@ export const FileGroup: React.FC<FileGroupProps> = ({ date, files, onFileClick }
         </DateHeaderContent>
       </DateHeader>
 
-      <FilesGrid>
-        {files.map((file) => (
-          <FileCard
-            key={file.id}
-            file={file}
-            onClick={onFileClick}
-          />
-        ))}
-      </FilesGrid>
+      {!isCollapsed && (
+        <FilesGrid>
+          {files.map((file) => (
+            <FileCard
+              key={file.id}
+              file={file}
+              onClick={onFileClick}
+            />
+          ))}
+        </FilesGrid>
+      )}
     </GroupContainer>
   )
 }

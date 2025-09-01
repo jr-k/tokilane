@@ -118,6 +118,18 @@ export const FilesGrid = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing[4]};
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  animation: fadeIn 0.3s ease-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
   @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
     padding: 0 ${({ theme }) => theme.spacing[6]};

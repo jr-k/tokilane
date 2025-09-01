@@ -56,9 +56,13 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
 
   // Charger les données de la timeline
   const loadTimelineData = useCallback(async (newFilters: FileFilters = {}) => {
+    // console.log('=== loadTimelineData START ===')
+    // console.log('loadingRef.current:', loadingRef.current)
+    // console.log('newFilters:', newFilters)
+    
     // Protection contre les appels multiples
     if (loadingRef.current) {
-      console.log('Appel API déjà en cours, ignoré')
+      // console.log('Already loading, skipping')
       return
     }
     
@@ -66,23 +70,31 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
       loadingRef.current = true
       setIsLoading(true)
       const queryString = buildQueryString(newFilters)
+      // console.log('queryString:', queryString)
       
-      console.log('Chargement timeline avec filtres:', newFilters)
-      const response = await fetch(`/api/timeline${queryString}`)
+      const apiUrl = `/api/timeline${queryString}`
+      // console.log('Making API call to:', apiUrl)
+      
+      const response = await fetch(apiUrl)
+      // console.log('API response status:', response.status)
       
       if (!response.ok) {
         throw new Error('Erreur lors du chargement des données')
       }
       
       const data = await response.json()
-      console.log('Données reçues:', data)
+      // console.log('API response data:', data)
+      // console.log('Total files returned by API:', data.total)
+      // console.log('Timeline dates:', Object.keys(data.timeline || {}))
       setTimelineData(data)
       setFilters(newFilters)
+      // console.log('Timeline data updated successfully')
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Erreur dans loadTimelineData:', error)
     } finally {
       setIsLoading(false)
       loadingRef.current = false
+      // console.log('=== loadTimelineData END ===')
     }
   }, [])
 
@@ -105,24 +117,36 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
 
   // Gestion des changements de filtres
   const handleFiltersChange = useCallback((newFilters: FileFilters) => {
-    // Vérifier si les filtres ont vraiment changé
-    const filtersChanged = JSON.stringify(filters) !== JSON.stringify(newFilters)
-    if (!filtersChanged) {
-      console.log('Filtres identiques, pas de rechargement')
-      return
-    }
-    
-    console.log('Changement de filtres:', { old: filters, new: newFilters })
-    
-    const queryString = buildQueryString(newFilters)
-    
-    // Mettre à jour l'URL
-    const newUrl = `${window.location.pathname}${queryString}`
-    window.history.pushState({}, '', newUrl)
-    
-    // Charger les nouvelles données
-    loadTimelineData(newFilters)
-  }, [filters, loadTimelineData])
+    // console.log('handleFiltersChange called with:', newFilters)
+    setFilters(currentFilters => {
+      // console.log('Current filters:', currentFilters)
+      
+      // Vérifier si les filtres ont vraiment changé (en excluant la page)
+      const { page: oldPage, ...oldFiltersWithoutPage } = currentFilters
+      const { page: newPage, ...newFiltersWithoutPage } = newFilters
+      
+      const filtersChanged = JSON.stringify(oldFiltersWithoutPage) !== JSON.stringify(newFiltersWithoutPage)
+      // console.log('Filters changed?', filtersChanged)
+      
+      if (!filtersChanged) {
+        // console.log('No changes detected, skipping update')
+        return currentFilters // Pas de changement
+      }
+      
+      const queryString = buildQueryString(newFilters)
+      // console.log('Query string:', queryString)
+      
+      // Mettre à jour l'URL
+      const newUrl = `${window.location.pathname}${queryString}`
+      window.history.pushState({}, '', newUrl)
+      
+      // Charger les nouvelles données
+      // console.log('Calling loadTimelineData with:', newFilters)
+      loadTimelineData(newFilters)
+      
+      return newFilters
+    })
+  }, [loadTimelineData])
 
   // Gestion de l'ouverture d'un fichier
   const handleFileClick = (file: FileItem) => {
@@ -134,9 +158,47 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
     setSelectedFile(null)
   }
 
+  // Trier les dates pour l'affichage
+  const sortedDates = timelineData ? Object.keys(timelineData.timeline).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  ) : []
+
+  // Obtenir tous les fichiers dans l'ordre chronologique
+  const getAllFiles = useCallback((): FileItem[] => {
+    if (!timelineData) return []
+    
+    const allFiles: FileItem[] = []
+    sortedDates.forEach(date => {
+      allFiles.push(...timelineData.timeline[date])
+    })
+    return allFiles
+  }, [timelineData, sortedDates])
+
+  // Navigation vers le fichier précédent
+  const handlePrevious = useCallback(() => {
+    if (!selectedFile) return
+    
+    const allFiles = getAllFiles()
+    const currentIndex = allFiles.findIndex(file => file.id === selectedFile.id)
+    if (currentIndex > 0) {
+      setSelectedFile(allFiles[currentIndex - 1])
+    }
+  }, [selectedFile, getAllFiles])
+
+  // Navigation vers le fichier suivant
+  const handleNext = useCallback(() => {
+    if (!selectedFile) return
+    
+    const allFiles = getAllFiles()
+    const currentIndex = allFiles.findIndex(file => file.id === selectedFile.id)
+    if (currentIndex < allFiles.length - 1) {
+      setSelectedFile(allFiles[currentIndex + 1])
+    }
+  }, [selectedFile, getAllFiles])
+
   // Gestion de l'upload
   const handleUploadComplete = useCallback((uploadedFileIds: string[]) => {
-    console.log('Files uploaded:', uploadedFileIds)
+    // console.log('Files uploaded:', uploadedFileIds)
     setShowUpload(false)
     // Recharger les données
     setTimeout(() => {
@@ -172,10 +234,7 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
     )
   }
 
-  // Trier les dates pour l'affichage
-  const sortedDates = Object.keys(timelineData.timeline).sort((a, b) => 
-    new Date(b).getTime() - new Date(a).getTime()
-  )
+
 
   // État vide
   const isEmpty = sortedDates.length === 0
@@ -252,12 +311,8 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
         <PreviewPanel
           file={selectedFile}
           onClose={closePreview}
-          onPrevious={() => {
-            console.log('Navigation vers le fichier précédent')
-          }}
-          onNext={() => {
-            console.log('Navigation vers le fichier suivant')
-          }}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
         />
       )}
 

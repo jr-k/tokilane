@@ -15,6 +15,7 @@ services:
     environment:
       - PORT=1323
       - FILES_ROOT=/app/files
+      - APP_LANG=${APP_LANG:-en}
       - DB_PATH=/app/data/app.db
       - DEBUG=${DEBUG:-false}
       - ENABLE_UPLOAD=${ENABLE_UPLOAD:-true}

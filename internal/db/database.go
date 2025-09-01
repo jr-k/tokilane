@@ -10,41 +10,41 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Database encapsule la connexion à la base de données
+// Database encapsulates the database connection
 type Database struct {
 	*gorm.DB
 }
 
-// New crée une nouvelle instance de base de données
+// New creates a new database instance
 func New(dbPath string, debug bool) (*Database, error) {
-	// Créer le dossier de la base de données s'il n'existe pas
+	// Create the database directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
-		return nil, fmt.Errorf("impossible de créer le dossier de la base de données: %w", err)
+		return nil, fmt.Errorf("unable to create database directory: %w", err)
 	}
 
-	// Configuration du logger
+	// Logger configuration
 	logLevel := logger.Silent
 	if debug {
 		logLevel = logger.Info
 	}
 
-	// Connexion à SQLite
+	// SQLite connection
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("impossible de se connecter à la base de données: %w", err)
+		return nil, fmt.Errorf("unable to connect to database: %w", err)
 	}
 
-	// Migration automatique
+	// Automatic migration
 	if err := db.AutoMigrate(&FileItem{}); err != nil {
-		return nil, fmt.Errorf("erreur lors de la migration: %w", err)
+		return nil, fmt.Errorf("migration error: %w", err)
 	}
 
 	return &Database{DB: db}, nil
 }
 
-// Close ferme la connexion à la base de données
+// Close closes the database connection
 func (d *Database) Close() error {
 	sqlDB, err := d.DB.DB()
 	if err != nil {
@@ -53,22 +53,22 @@ func (d *Database) Close() error {
 	return sqlDB.Close()
 }
 
-// Repository pour les opérations sur FileItem
+// Repository for FileItem operations
 type FileItemRepository struct {
 	db *Database
 }
 
-// NewFileItemRepository crée un nouveau repository
+// NewFileItemRepository creates a new repository
 func NewFileItemRepository(db *Database) *FileItemRepository {
 	return &FileItemRepository{db: db}
 }
 
-// Create ajoute un nouveau fichier
+// Create adds a new file
 func (r *FileItemRepository) Create(item *FileItem) error {
 	return r.db.Create(item).Error
 }
 
-// GetByID récupère un fichier par son ID
+// GetByID retrieves a file by its ID
 func (r *FileItemRepository) GetByID(id string) (*FileItem, error) {
 	var item FileItem
 	if err := r.db.First(&item, "id = ?", id).Error; err != nil {
@@ -77,7 +77,7 @@ func (r *FileItemRepository) GetByID(id string) (*FileItem, error) {
 	return &item, nil
 }
 
-// GetByPath récupère un fichier par son chemin
+// GetByPath retrieves a file by its path
 func (r *FileItemRepository) GetByPath(path string) (*FileItem, error) {
 	var item FileItem
 	if err := r.db.First(&item, "abs_path = ?", path).Error; err != nil {
@@ -86,7 +86,7 @@ func (r *FileItemRepository) GetByPath(path string) (*FileItem, error) {
 	return &item, nil
 }
 
-// GetByHash récupère un fichier par son hash
+// GetByHash retrieves a file by its hash
 func (r *FileItemRepository) GetByHash(hash string) (*FileItem, error) {
 	var item FileItem
 	if err := r.db.First(&item, "hash = ?", hash).Error; err != nil {
@@ -95,22 +95,22 @@ func (r *FileItemRepository) GetByHash(hash string) (*FileItem, error) {
 	return &item, nil
 }
 
-// Update met à jour un fichier
+// Update updates a file
 func (r *FileItemRepository) Update(item *FileItem) error {
 	return r.db.Save(item).Error
 }
 
-// Delete supprime un fichier
+// Delete removes a file
 func (r *FileItemRepository) Delete(id string) error {
 	return r.db.Delete(&FileItem{}, "id = ?", id).Error
 }
 
-// DeleteByPath supprime un fichier par son chemin
+// DeleteByPath removes a file by its path
 func (r *FileItemRepository) DeleteByPath(path string) error {
 	return r.db.Delete(&FileItem{}, "abs_path = ?", path).Error
 }
 
-// ListFilters représente les filtres pour la liste des fichiers
+// ListFilters represents filters for the file list
 type ListFilters struct {
 	Query     string    `json:"query"`
 	Extension string    `json:"extension"`
@@ -122,7 +122,7 @@ type ListFilters struct {
 	PageSize  int       `json:"page_size"`
 }
 
-// ListResult représente le résultat d'une liste paginée
+// ListResult represents the result of a paginated list
 type ListResult struct {
 	Items      []FileItem `json:"items"`
 	Total      int64      `json:"total"`
@@ -131,11 +131,11 @@ type ListResult struct {
 	TotalPages int        `json:"total_pages"`
 }
 
-// List récupère une liste paginée de fichiers avec filtres
+// List retrieves a paginated list of files with filters
 func (r *FileItemRepository) List(filters ListFilters) (*ListResult, error) {
 	query := r.db.Model(&FileItem{})
 
-	// Filtres
+	// Filters
 	if filters.Query != "" {
 		query = query.Where("name LIKE ? OR abs_path LIKE ?", "%"+filters.Query+"%", "%"+filters.Query+"%")
 	}
@@ -160,7 +160,7 @@ func (r *FileItemRepository) List(filters ListFilters) (*ListResult, error) {
 		query = query.Where("size <= ?", *filters.MaxSize)
 	}
 
-	// Compter le total
+	// Count total
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		return nil, err
@@ -198,11 +198,11 @@ func (r *FileItemRepository) List(filters ListFilters) (*ListResult, error) {
 	}, nil
 }
 
-// GetGroupedByDate récupère les fichiers groupés par date
+// GetGroupedByDate retrieves files grouped by date
 func (r *FileItemRepository) GetGroupedByDate(filters ListFilters) (map[string][]FileItem, error) {
 	query := r.db.Model(&FileItem{})
 
-	// Appliquer les mêmes filtres que List
+	// Apply the same filters as List
 	if filters.Query != "" {
 		query = query.Where("name LIKE ? OR abs_path LIKE ?", "%"+filters.Query+"%", "%"+filters.Query+"%")
 	}
@@ -232,7 +232,7 @@ func (r *FileItemRepository) GetGroupedByDate(filters ListFilters) (map[string][
 		return nil, err
 	}
 
-	// Grouper par date (YYYY-MM-DD)
+	// Group by date (YYYY-MM-DD)
 	grouped := make(map[string][]FileItem)
 	for _, item := range items {
 		dateKey := item.CreatedAt.Format("2006-01-02")

@@ -12,24 +12,24 @@ import (
 	"tokilane/internal/files"
 )
 
-// Server représente le serveur web
+// Server represents the web server
 type Server struct {
 	echo     *echo.Echo
 	config   *config.Config
 	handlers *Handlers
 }
 
-// NewServer crée un nouveau serveur
+// NewServer creates a new server
 func NewServer(cfg *config.Config, database *db.Database, indexer *files.Indexer) *Server {
 	e := echo.New()
 	
-	// Configuration d'Echo
+	// Echo configuration
 	e.HideBanner = true
 	if cfg.Debug {
 		e.Debug = true
 	}
 
-	// Repository et services
+	// Repository and services
 	repo := db.NewFileItemRepository(database)
 	thumbnailSvc := files.NewThumbnailService(cfg.DBPath + "/../thumbs")
 	
@@ -48,7 +48,7 @@ func NewServer(cfg *config.Config, database *db.Database, indexer *files.Indexer
 	return server
 }
 
-// setupMiddleware configure les middlewares
+// setupMiddleware configure the middlewares
 func (s *Server) setupMiddleware() {
 	// Logger
 	if s.config.Debug {
@@ -77,82 +77,83 @@ func (s *Server) setupMiddleware() {
 		ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';",
 	}))
 
-	// CORS doit être avant les autres middlewares
-	// (déjà configuré plus haut)
+	// CORS must be before other middlewares
+	// (already configured above)
 
-	// Rate limiting (plus généreux pour le développement)
+	// Rate limiting (more generous for development)
 	s.echo.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(100)))
 
-	// Static files pour le frontend (en production)
+	// Static files for the frontend (in production)
 	s.echo.Static("/dist", "dist")
 	s.echo.Static("/assets", "dist/assets")
 }
 
-// setupRoutes configure les routes
+// setupRoutes configure the routes
 func (s *Server) setupRoutes() {
 	// API routes
 	api := s.echo.Group("/api")
 	{
+		api.GET("/config", s.handlers.GetAppConfig)
 		api.GET("/timeline", s.handlers.GetTimelineData)
 		api.GET("/files", s.handlers.ListFiles)
 		api.GET("/files/:id", s.handlers.GetFile)
 		
-		// Upload (si activé)
+		// Upload (if enabled)
 		if s.config.EnableUpload {
 			api.POST("/upload", s.handlers.UploadFiles)
 		}
 	}
 
-	// Routes pour servir les fichiers
+	// Routes for serving files
 	files := s.echo.Group("/files")
 	{
 		files.GET("/:id/preview", s.handlers.PreviewFile)
 		files.GET("/:id/thumb", s.handlers.ThumbnailFile)
 	}
 
-	// Page principale (sera servie par Vite en dev)
+	// Main page (will be served by Vite in dev)
 	s.echo.GET("/", s.handlers.TimelinePage)
 
-	// Routes pour le développement (servies par Vite en dev)
+	// Routes for development (served by Vite in dev)
 	if s.config.Debug {
 		// Proxy vers Vite dev server
 		s.setupDevProxy()
 	}
 }
 
-// setupDevProxy configure le proxy vers Vite en développement
+// setupDevProxy configure the proxy to Vite in development
 func (s *Server) setupDevProxy() {
-	// En mode développement, on peut soit:
-	// 1. Servir directement depuis dist/ si Vite a build
-	// 2. Proxy vers le dev server Vite (http://localhost:5173)
+	// In development mode, we can either:
+	// 1. Serve directly from dist/ if Vite has built
+	// 2. Proxy to the Vite dev server (http://localhost:5173)
 	// 
-	// Pour simplifier, on va juste servir les assets statiques
-	// et laisser Vite gérer le dev server séparément
+	// For simplicity, we'll just serve the static assets
+	// and let Vite handle the dev server separately
 	
-	log.Println("Mode développement: les assets frontend doivent être servis par Vite")
+	log.Println("Development mode: the frontend assets must be served by Vite")
 }
 
-// Start démarre le serveur
+// Start starts the server
 func (s *Server) Start() error {
 	addr := ":" + s.config.Port
-	log.Printf("Serveur démarré sur http://localhost%s", addr)
+	log.Printf("Server started on http://localhost%s", addr)
 	
 	if s.config.Debug {
-		log.Println("Mode debug activé")
-		log.Printf("Dossier des fichiers: %s", s.config.FilesRoot)
-		log.Printf("Upload activé: %v", s.config.EnableUpload)
+		log.Println("Debug mode activated")
+		log.Printf("Files folder: %s", s.config.FilesRoot)
+		log.Printf("Upload activated: %v", s.config.EnableUpload)
 	}
 
 	return s.echo.Start(addr)
 }
 
-// Stop arrête le serveur
+// Stop stops the server
 func (s *Server) Stop() error {
-	log.Println("Arrêt du serveur...")
+	log.Println("Stopping server...")
 	return s.echo.Close()
 }
 
-// Health endpoint pour vérifier l'état du serveur
+// Health endpoint to check the server state
 func (s *Server) HealthCheck(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":       "ok",

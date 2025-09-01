@@ -1,72 +1,73 @@
-# Multi-stage build pour optimiser la taille de l'image finale
+# Multi-stage build to optimize final image size
 
-# Étape 1: Build du frontend
+# Step 1: Build frontend
 FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app
 
-# Copier les fichiers de configuration
+# Copy configuration files
 COPY package.json package-lock.json ./
 COPY web/ ./web/
 
-# Installer les dépendances et builder
+# Install dependencies and build
 RUN npm ci && npm run build
 
-# Étape 2: Build du backend
+# Step 2: Build backend
 FROM golang:1.22-alpine AS backend-builder
 
-# Installer les dépendances système nécessaires
+# Install system dependencies
 RUN apk add --no-cache git gcc musl-dev
 
 WORKDIR /app
 
-# Copier les fichiers Go
+# Copy Go files
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-# Builder l'application
+# Build application
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o tokilane cmd/server/main.go
 
-# Étape 3: Image finale
+# Step 3: Final image
 FROM alpine:3.18
 
-# Installer les dépendances runtime
+# Install runtime dependencies
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     sqlite \
     && rm -rf /var/cache/apk/*
 
-# Créer un utilisateur non-root
+# Create non-root user
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copier l'exécutable
+# Copy executable
 COPY --from=backend-builder /app/tokilane .
 
-# Copier les assets frontend buildés
+# Copy frontend build assets
 COPY --from=frontend-builder /app/dist ./dist
 
-# Copier l'index.html pour Inertia
+# Copy index.html for Inertia
 COPY --from=frontend-builder /app/web/index.html ./web/
 
-# Créer les dossiers nécessaires avec les bonnes permissions
+# Create necessary directories with the correct permissions
 RUN mkdir -p data/thumbs files && \
     chown -R appuser:appgroup /app
 
-# Changer vers l'utilisateur non-root
+# Change to non-root user
 USER appuser
 
-# Exposer le port
+# Expose port
 EXPOSE 1323
 
-# Variables d'environnement par défaut
+# Default environment variables
 ENV PORT=1323
 ENV FILES_ROOT=/app/files
+ENV APP_LANG=en
 ENV DB_PATH=/app/data/app.db
 ENV DEBUG=false
 
@@ -74,5 +75,5 @@ ENV DEBUG=false
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/ || exit 1
 
-# Commande par défaut
+# Default command
 CMD ["./tokilane"]

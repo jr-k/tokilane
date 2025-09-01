@@ -4,6 +4,9 @@
 GO_FILES := $(shell find . -name '*.go' -not -path './vendor/*')
 TS_FILES := $(shell find web/src -name '*.ts' -o -name '*.tsx' 2>/dev/null || true)
 
+
+echo APP_LANG: $(APP_LANG)
+
 # Commandes principales
 dev: deps
 	@echo "🚀 Démarrage en mode développement..."

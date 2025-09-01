@@ -96,7 +96,7 @@ const Timeline: React.FC<TimelinePageProps> = ({
 
   // Gestion de l'upload
   const handleUploadComplete = (uploadedFileIds: string[]) => {
-    console.log('Files uploaded:', uploadedFileIds)
+    // console.log('Files uploaded:', uploadedFileIds)
     setShowUpload(false)
     // Rafraîchir la page pour voir les nouveaux fichiers
     setTimeout(() => {
@@ -196,11 +196,11 @@ const Timeline: React.FC<TimelinePageProps> = ({
           onClose={closePreview}
           onPrevious={() => {
             // TODO: Implémenter la navigation entre fichiers
-            console.log('Navigation vers le fichier précédent')
+            // console.log('Navigation vers le fichier précédent')
           }}
           onNext={() => {
             // TODO: Implémenter la navigation entre fichiers
-            console.log('Navigation vers le fichier suivant')
+            // console.log('Navigation vers le fichier suivant')
           }}
         />
       )}

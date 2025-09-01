@@ -20,8 +20,6 @@ const AppContainer = styled.div`
   left: 0;
 `
 
-
-
 const MainContent = styled.div`
   flex: 1;
   display: flex;
@@ -446,6 +444,16 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
   const loadingRef = React.useRef(false)
   const sidePanelContentRef = React.useRef<HTMLDivElement>(null)
 
+  // Helper function to convert newlines to HTML breaks
+  const nl2br = (text: string) => {
+    return text.split('\n').map((line, index, array) => (
+      <React.Fragment key={index}>
+        {line}
+        {index < array.length - 1 && <br />}
+      </React.Fragment>
+    ))
+  }
+
   // Function to load data
   const loadTimelineData = useCallback(async () => {
     if (loadingRef.current) return
@@ -455,7 +463,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
       setIsLoading(true)
       
       const response = await fetch('/api/timeline?page=1&page_size=100')
-      if (!response.ok) throw new Error('Erreur lors du chargement')
+      if (!response.ok) throw new Error('Loading error')
       
       const data = await response.json()
       setTimelineData(data)
@@ -467,7 +475,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
         setSelectedIndex(0)
       }
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Error:', error)
     } finally {
       setIsLoading(false)
       loadingRef.current = false
@@ -501,7 +509,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
         setPreviewContent(content)
       }
     } catch (error) {
-      console.error('Erreur lors du chargement du contenu:', error)
+      console.error('Error loading content:', error)
     }
   }, [])
 
@@ -668,8 +676,8 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
       return (
         <EmptyPreview>
           <EmptyPreviewIcon>📁</EmptyPreviewIcon>
-          <EmptyPreviewTitle>Aucun fichier sélectionné</EmptyPreviewTitle>
-          <EmptyPreviewText>Cliquez sur un point de la timeline pour commencer</EmptyPreviewText>
+          <EmptyPreviewTitle>{t('seekbar.noFileSelected')}</EmptyPreviewTitle>
+          <EmptyPreviewText>{t('seekbar.clickTimelineToStart')}</EmptyPreviewText>
         </EmptyPreview>
       )
     }
@@ -682,7 +690,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
         <PreviewImage
           src={`/files/${selectedFile.id}/preview`}
           alt={selectedFile.name}
-          onError={() => console.error('Erreur de chargement image')}
+          onError={() => console.error(t('seekbar.errorLoadingImage'))}
         />
       )
     }
@@ -705,7 +713,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
           controls
           autoPlay={false}
         >
-          Votre navigateur ne supporte pas la lecture vidéo.
+          {t('seekbar.browserVideoNotSupported')}
         </PreviewVideo>
       )
     }
@@ -714,7 +722,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
     if (mime?.startsWith('text/') || ext === '.md' || ext === '.txt') {
       return (
         <PreviewText>
-          {previewContent || 'Chargement du contenu...'}
+          {previewContent ? nl2br(previewContent) : t('seekbar.loadingContent')}
         </PreviewText>
       )
     }
@@ -724,11 +732,11 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
       <EmptyPreview>
         <EmptyPreviewIcon>{getFileIcon(selectedFile.ext)}</EmptyPreviewIcon>
         <EmptyPreviewTitle>{selectedFile.name}</EmptyPreviewTitle>
-        <EmptyPreviewText>Aperçu non disponible pour ce type de fichier</EmptyPreviewText>
+        <EmptyPreviewText>{t('seekbar.previewNotAvailable')}</EmptyPreviewText>
         <DownloadButton 
           onClick={() => window.open(`/files/${selectedFile.id}/preview`, '_blank')}
         >
-          Télécharger le fichier
+          {t('seekbar.downloadFile')}
         </DownloadButton>
       </EmptyPreview>
     )
@@ -865,7 +873,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
 
         <SidePanel>
           <SidePanelHeader>
-            <SidePanelTitle>Fichiers</SidePanelTitle>
+            <SidePanelTitle>{t('seekbar.files')}</SidePanelTitle>
           </SidePanelHeader>
           <SidePanelContent ref={sidePanelContentRef}>
             {allFiles.map((file, index) => {

@@ -28,7 +28,7 @@ export const DropzoneArea = styled.div<{ $isDragOver: boolean; $hasActiveUploads
         
         &:hover {
           border-color: ${theme.colors.primary[400]};
-          background-color: ${theme.colors.primary[25]};
+          background-color: ${theme.colors.primary[50]};
         }
       `
     }
@@ -213,7 +213,7 @@ export const FileSize = styled.p`
 
 export const FileError = styled.p`
   font-size: 0.75rem;
-  color: ${({ theme }) => theme.colors.red[600]};
+  color: ${({ theme }) => theme.colors.red[500]};
   margin: ${({ theme }) => theme.spacing[1]} 0 0 0;
 `
 

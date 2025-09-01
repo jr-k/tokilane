@@ -67,6 +67,8 @@ export interface Translations {
     size: string
     createdOn: string
     hash: string
+    unableToLoadTextContent: string
+    fileLocationMessage: string
   }
   
   // Upload
@@ -121,6 +123,19 @@ export interface Translations {
     w: string
     m: string
     y: string
+    filesThisDay: string
+  }
+
+  // Seekbar specific
+  seekbar: {
+    noFileSelected: string
+    clickTimelineToStart: string
+    loadingContent: string
+    downloadFile: string
+    previewNotAvailable: string
+    files: string
+    browserVideoNotSupported: string
+    errorLoadingImage: string
   }
 }
 
@@ -407,13 +422,24 @@ export const t = (key: string, lang?: Language): string => {
   return value || key
 }
 
+// Function to change language (would need backend API support)
+export const setLanguage = async (newLanguage: Language) => {
+  // For now, just set the global variable
+  // In a full implementation, this would call the backend API
+  appLocale = newLanguage
+  
+  // Reload the page to apply changes
+  window.location.reload()
+}
+
 // Hook React used to use translations
 export const useTranslation = () => {
   const currentLang = getCurrentLanguage()
   
   return {
     t: (key: string) => t(key, currentLang),
-    language: currentLang
+    language: currentLang,
+    setLanguage
     // Note: Language managed by backend via app_lang
   }
 }

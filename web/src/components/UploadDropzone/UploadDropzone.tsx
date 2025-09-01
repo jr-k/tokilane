@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react'
-import { FileUpload, UploadProgress } from '@/types'
+import { FileUpload } from '@/types'
 import { uploadFiles, ApiError } from '@/lib/api'
 import { isAllowedFileType, generateId, formatFileSize } from '@/lib/utils'
 import {
@@ -48,7 +48,7 @@ export const UploadDropzone: React.FC<UploadDropzoneProps> = ({
 }) => {
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploads, setUploads] = useState<FileUpload[]>([])
-  const [isUploading, setIsUploading] = useState(false)
+  const [_, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const handleDragOver = useCallback((e: React.DragEvent) => {

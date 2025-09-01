@@ -38,9 +38,43 @@ func NewHandlers(cfg *config.Config, repo *db.FileItemRepository, thumbnailSvc *
 
 // TimelinePage displays the main timeline page
 func (h *Handlers) TimelinePage(c echo.Context) error {
-	// For now, serve the static HTML file
-	// In production, this will be handled by Vite build
-	return c.File("web/index.html")
+	// In production, serve the built HTML file
+	// Try different paths depending on the environment
+	paths := []string{
+		"dist/index.html",     // Production build
+		"web/index.html",      // Development
+		"/app/web/index.html", // Docker
+	}
+	
+	for _, path := range paths {
+		if _, err := os.Stat(path); err == nil {
+			return c.File(path)
+		}
+	}
+	
+	// Fallback: return a simple HTML response
+	return c.HTML(http.StatusOK, `<!DOCTYPE html>
+<html>
+<head>
+    <title>Tokilane</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div id="root">Loading Tokilane...</div>
+    <script>
+        // Try to load from different paths
+        const scripts = ['/dist/assets/index.js', '/assets/index.js'];
+        for (const src of scripts) {
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = src;
+            script.onerror = () => console.log('Failed to load:', src);
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html>`)
 }
 
 // GetTimelineData retrieves the data for the timeline

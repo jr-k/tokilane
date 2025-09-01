@@ -3,6 +3,8 @@ package web
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -84,8 +86,16 @@ func (s *Server) setupMiddleware() {
 	s.echo.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(100)))
 
 	// Static files for the frontend (in production)
-	s.echo.Static("/dist", "dist")
-	s.echo.Static("/assets", "dist/assets")
+	// Try different paths for static assets
+	staticPaths := []string{"dist", "/app/dist"}
+	for _, path := range staticPaths {
+		if _, err := os.Stat(path); err == nil {
+			s.echo.Static("/", path)
+			s.echo.Static("/assets", filepath.Join(path, "assets"))
+			log.Printf("Serving static files from: %s", path)
+			break
+		}
+	}
 }
 
 // setupRoutes configure the routes

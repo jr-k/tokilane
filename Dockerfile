@@ -53,21 +53,22 @@ RUN CGO_ENABLED=1 GOOS=linux \
     -tags "sqlite_omit_load_extension sqlite_foreign_keys sqlite_stat4" \
     -o tokilane cmd/server/main.go
 
-# Step 3: Final image (still using Alpine for size)
-FROM alpine:3.18
+# Step 3: Final image (using Debian slim for glibc compatibility)
+FROM debian:bullseye-slim
 
 # Install runtime dependencies including SQLite libraries
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tzdata \
-    sqlite \
-    sqlite-libs \
-    libc6-compat \
-    && rm -rf /var/cache/apk/*
+    sqlite3 \
+    libsqlite3-0 \
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/bash -m appuser
 
 WORKDIR /app
 

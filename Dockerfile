@@ -2,7 +2,7 @@
 # Use this if Alpine continues to have SQLite compilation problems
 
 # Step 1: Build frontend
-FROM --platform=$BUILDPLATFORM node:18-alpine AS frontend-builder
+FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -13,12 +13,8 @@ COPY web/ ./web/
 # Install dependencies and build
 RUN npm ci && npm run build
 
-# Step 2: Build backend (using Debian for multi-arch support)
-FROM --platform=$BUILDPLATFORM golang:1.22-bullseye AS backend-builder
-
-# Build arguments for cross-compilation
-ARG TARGETOS
-ARG TARGETARCH
+# Step 2: Build backend (using Debian instead of Alpine)
+FROM golang:1.22-bullseye AS backend-builder
 
 # Install system dependencies including development tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,15 +28,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Install cross-compilation tools for different architectures
-RUN case "${TARGETARCH}" in \
-    amd64) apt-get update && apt-get install -y gcc-x86-64-linux-gnu ;; \
-    arm64) apt-get update && apt-get install -y gcc-aarch64-linux-gnu ;; \
-    arm) apt-get update && apt-get install -y gcc-arm-linux-gnueabihf ;; \
-    ppc64le) apt-get update && apt-get install -y gcc-powerpc64le-linux-gnu ;; \
-    s390x) apt-get update && apt-get install -y gcc-s390x-linux-gnu ;; \
-    esac && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install SQLite from source for better compatibility and latest version
 RUN curl -L https://www.sqlite.org/2024/sqlite-autoconf-3470000.tar.gz | tar xz \
@@ -59,19 +46,11 @@ RUN go mod download
 
 COPY . .
 
-# Set cross-compilation environment variables
-RUN case "${TARGETARCH}" in \
-    amd64) export CC=x86_64-linux-gnu-gcc ;; \
-    arm64) export CC=aarch64-linux-gnu-gcc ;; \
-    arm) export CC=arm-linux-gnueabihf-gcc ;; \
-    ppc64le) export CC=powerpc64le-linux-gnu-gcc ;; \
-    s390x) export CC=s390x-linux-gnu-gcc ;; \
-    esac && \
-    CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+# Build application with proper SQLite linking
+RUN CGO_ENABLED=1 GOOS=linux \
     PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
     go build -a -installsuffix cgo \
     -tags "sqlite_omit_load_extension sqlite_foreign_keys sqlite_stat4" \
-    -ldflags="-s -w" \
     -o tokilane cmd/server/main.go
 
 # Step 3: Final image (still using Alpine for size)

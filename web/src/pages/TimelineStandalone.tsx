@@ -197,8 +197,8 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
   }, [selectedFile, getAllFiles])
 
   // Gestion de l'upload
-  const handleUploadComplete = useCallback((uploadedFileIds: string[]) => {
-    // console.log('Files uploaded:', uploadedFileIds)
+  const handleUploadComplete = useCallback((_uploadedFileIds: string[]) => {
+    // console.log('Files uploaded:', _uploadedFileIds)
     setShowUpload(false)
     // Recharger les données
     setTimeout(() => {

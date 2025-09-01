@@ -23,6 +23,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Verify Go module structure
+      run: |
+        echo "Checking Go module structure..."
+        ls -la
+        echo "Checking internal directory..."
+        ls -la internal/
+        echo "Checking if internal/files exists..."
+        ls -la internal/files/
+        echo "Verifying go.mod..."
+        cat go.mod
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -48,10 +59,11 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build and push Docker image
+      id: build
       uses: docker/build-push-action@v5
       with:
         context: .
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

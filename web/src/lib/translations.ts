@@ -229,6 +229,16 @@ export const translations: Record<Language, Translations> = {
       m: 'm',
       y: 'y',
       filesThisDay: 'files this day'
+    },
+    seekbar: {
+      noFileSelected: 'No file selected',
+      clickTimelineToStart: 'Click on a timeline point to start',
+      loadingContent: 'Loading content...',
+      downloadFile: 'Download file',
+      previewNotAvailable: 'Preview not available for this file type',
+      files: 'Files',
+      browserVideoNotSupported: 'Your browser does not support video playback.',
+      errorLoadingImage: 'Image loading error'
     }
   },
   fr: {
@@ -335,6 +345,16 @@ export const translations: Record<Language, Translations> = {
       m: 'mois',
       y: 'an',
       filesThisDay: 'fichiers ce jour'
+    },
+    seekbar: {
+      noFileSelected: 'Aucun fichier sélectionné',
+      clickTimelineToStart: 'Cliquez sur un point de la timeline pour commencer',
+      loadingContent: 'Chargement du contenu...',
+      downloadFile: 'Télécharger le fichier',
+      previewNotAvailable: 'Aperçu non disponible pour ce type de fichier',
+      files: 'Fichiers',
+      browserVideoNotSupported: 'Votre navigateur ne supporte pas la lecture vidéo.',
+      errorLoadingImage: 'Erreur de chargement image'
     }
   }
 }

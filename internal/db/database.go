@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -29,13 +31,31 @@ func New(dbPath string, debug bool) (*Database, error) {
 		logLevel = logger.Info
 	}
 
-	// SQLite connection
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+	// SQLite connection with optimized settings for concurrency
+	db, err := gorm.Open(sqlite.Open(dbPath+"?cache=shared&mode=rwc&_journal_mode=WAL&_synchronous=NORMAL&_cache_size=1000&_temp_store=memory"), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %w", err)
 	}
+
+	// Configure connection pool for better concurrency
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get underlying sql.DB: %w", err)
+	}
+	
+	// Set connection pool settings
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
+
+	// Enable WAL mode and other optimizations
+	sqlDB.Exec("PRAGMA journal_mode = WAL;")
+	sqlDB.Exec("PRAGMA synchronous = NORMAL;")
+	sqlDB.Exec("PRAGMA cache_size = 1000;")
+	sqlDB.Exec("PRAGMA temp_store = memory;")
+	sqlDB.Exec("PRAGMA mmap_size = 268435456;") // 256MB
 
 	// Automatic migration
 	if err := db.AutoMigrate(&FileItem{}); err != nil {
@@ -115,9 +135,50 @@ func (r *FileItemRepository) UpdateUnscoped(item *FileItem) error {
 	return r.db.Unscoped().Save(item).Error
 }
 
-// UpdateThumbnailPath updates only the thumbnail path for a file
+// UpdateThumbnailPath updates only the thumbnail path for a file with retry mechanism
 func (r *FileItemRepository) UpdateThumbnailPath(id string, thumbPath string) error {
-	return r.db.Model(&FileItem{}).Where("id = ?", id).Update("thumb_path", thumbPath).Error
+	return r.retryOperation(func() error {
+		return r.db.Model(&FileItem{}).Where("id = ?", id).Update("thumb_path", thumbPath).Error
+	})
+}
+
+// retryOperation retries database operations in case of lock errors
+func (r *FileItemRepository) retryOperation(operation func() error) error {
+	maxRetries := 3
+	baseDelay := 10 * time.Millisecond
+	
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		err := operation()
+		if err == nil {
+			return nil
+		}
+		
+		// Check if it's a database lock error
+		if isLockError(err) {
+			if attempt < maxRetries-1 {
+				// Wait with exponential backoff
+				delay := time.Duration(attempt+1) * baseDelay
+				time.Sleep(delay)
+				continue
+			}
+		}
+		
+		// Return error if it's not a lock error or max retries reached
+		return err
+	}
+	
+	return fmt.Errorf("operation failed after %d retries", maxRetries)
+}
+
+// isLockError checks if the error is related to database locking
+func isLockError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "database is locked") || 
+		   strings.Contains(errStr, "sqlite_busy") ||
+		   strings.Contains(errStr, "database table is locked")
 }
 
 // Delete removes a file

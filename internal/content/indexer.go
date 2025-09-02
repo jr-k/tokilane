@@ -17,6 +17,13 @@ import (
 	"tokilane/internal/db"
 )
 
+// ThumbnailUpdate represents a thumbnail update task
+type ThumbnailUpdate struct {
+	FileID   string
+	Path     string
+	MimeType string
+}
+
 // Indexer manages the indexing of files
 type Indexer struct {
 	config          *IndexerConfig
@@ -26,6 +33,8 @@ type Indexer struct {
 	watcher         *fsnotify.Watcher
 	eventChannel    chan FileEvent
 	stopChannel     chan bool
+	thumbnailQueue  chan ThumbnailUpdate
+	thumbnailWg     sync.WaitGroup
 }
 
 // IndexerConfig configuration of the indexer
@@ -56,15 +65,21 @@ func NewIndexer(config *IndexerConfig, database *db.Database) (*Indexer, error) 
 		return nil, fmt.Errorf("impossible to create the watcher: %w", err)
 	}
 
-	return &Indexer{
-		config:       config,
-		db:           database,
-		repo:         repo,
-		thumbnailSvc: thumbnailSvc,
-		watcher:      watcher,
-		eventChannel: make(chan FileEvent, 100),
-		stopChannel:  make(chan bool),
-	}, nil
+	indexer := &Indexer{
+		config:         config,
+		db:             database,
+		repo:           repo,
+		thumbnailSvc:   thumbnailSvc,
+		watcher:        watcher,
+		eventChannel:   make(chan FileEvent, 100),
+		stopChannel:    make(chan bool),
+		thumbnailQueue: make(chan ThumbnailUpdate, 1000), // Buffer for thumbnail tasks
+	}
+
+	// Start thumbnail worker
+	go indexer.thumbnailWorker()
+
+	return indexer, nil
 }
 
 // Start starts the indexer
@@ -93,6 +108,11 @@ func (i *Indexer) Stop() error {
 	log.Println("Stopping indexer...")
 	
 	close(i.stopChannel)
+	
+	// Wait for all thumbnail processing to complete
+	log.Println("Waiting for thumbnail processing to complete...")
+	i.thumbnailWg.Wait()
+	close(i.thumbnailQueue)
 	
 	if i.watcher != nil {
 		if err := i.watcher.Close(); err != nil {
@@ -388,15 +408,35 @@ func (i *Indexer) processFile(path string, existing *db.FileItem) (*db.FileItem,
 	return fileItem, nil
 }
 
-// generateThumbnailAsync generates thumbnails asynchronously
-func (i *Indexer) generateThumbnailAsync(fileID, path, mime string) {
-	if thumbPath, err := i.thumbnailSvc.GenerateIfNeeded(fileID, path, mime); err != nil {
-		log.Printf("Error generating thumbnail for %s: %v", path, err)
-	} else if thumbPath != "" {
-		// Update thumbnail path in database
-		if err := i.repo.UpdateThumbnailPath(fileID, thumbPath); err != nil {
-			log.Printf("Error updating thumbnail path for %s: %v", path, err)
+// thumbnailWorker processes thumbnail updates sequentially to avoid database locks
+func (i *Indexer) thumbnailWorker() {
+	for update := range i.thumbnailQueue {
+		if thumbPath, err := i.thumbnailSvc.GenerateIfNeeded(update.FileID, update.Path, update.MimeType); err != nil {
+			log.Printf("Error generating thumbnail for %s: %v", update.Path, err)
+		} else if thumbPath != "" {
+			// Update thumbnail path in database (with retry mechanism)
+			if err := i.repo.UpdateThumbnailPath(update.FileID, thumbPath); err != nil {
+				log.Printf("Error updating thumbnail path for %s: %v", update.Path, err)
+			}
 		}
+		i.thumbnailWg.Done()
+	}
+}
+
+// generateThumbnailAsync queues thumbnail generation to avoid concurrent database access
+func (i *Indexer) generateThumbnailAsync(fileID, path, mime string) {
+	i.thumbnailWg.Add(1)
+	select {
+	case i.thumbnailQueue <- ThumbnailUpdate{
+		FileID:   fileID,
+		Path:     path,
+		MimeType: mime,
+	}:
+		// Successfully queued
+	default:
+		// Queue is full, skip this thumbnail generation
+		log.Printf("Thumbnail queue full, skipping %s", path)
+		i.thumbnailWg.Done()
 	}
 }
 

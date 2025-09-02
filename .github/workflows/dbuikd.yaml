@@ -92,8 +92,8 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_JIERKA_USERNAME }}
-          password: ${{ secrets.DOCKER_JIERKA_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_JIERKA_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_JIERKA_PASSWORD }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -120,8 +120,8 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_JIERKA_USERNAME }}
-          password: ${{ secrets.DOCKER_JIERKA_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_JIERKA_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_JIERKA_PASSWORD }}
 
       - name: Create multi-platform image
         run: |
@@ -134,18 +134,18 @@ jobs:
             
       - name: Get Docker Hub token
         run: |
-          response=$(curl -s -H "Content-Type: application/json" -X POST -d "{\"username\": \"${{ secrets.DOCKER_JIERKA_USERNAME }}\", \"password\": \"${{ secrets.DOCKER_JIERKA_PASSWORD }}\"}" https://hub.docker.com/v2/users/login/)
+          response=$(curl -s -H "Content-Type: application/json" -X POST -d "{\"username\": \"${{ secrets.DOCKERHUB_JIERKA_USERNAME }}\", \"password\": \"${{ secrets.DOCKERHUB_JIERKA_PASSWORD }}\"}" https://hub.docker.com/v2/users/login/)
           token=$(echo $response | jq -r .token)
           echo "DOCKER_HUB_TOKEN=$token" >> $GITHUB_ENV
 
       - name: Delete old amd64 tag
         run: |
-          curl -s -X DELETE -H "Authorization: JWT ${{ env.DOCKER_HUB_TOKEN }}" "https://hub.docker.com/v2/namespaces/${{ secrets.DOCKER_JIERKA_USERNAME }}/repositories/${{ env.DOCKER_REPO }}/tags/v${{ steps.get_version.outputs.VERSION }}-${{ env.PLATFORM_1 }}"
+          curl -s -X DELETE -H "Authorization: JWT ${{ env.DOCKER_HUB_TOKEN }}" "https://hub.docker.com/v2/namespaces/${{ secrets.DOCKERHUB_JIERKA_USERNAME }}/repositories/${{ env.DOCKER_REPO }}/tags/v${{ steps.get_version.outputs.VERSION }}-${{ env.PLATFORM_1 }}"
 
       - name: Delete old arm64 tag
         run: |
-          curl -s -X DELETE -H "Authorization: JWT ${{ env.DOCKER_HUB_TOKEN }}" "https://hub.docker.com/v2/namespaces/${{ secrets.DOCKER_JIERKA_USERNAME }}/repositories/${{ env.DOCKER_REPO }}/tags/v${{ steps.get_version.outputs.VERSION }}-${{ env.PLATFORM_2 }}"
+          curl -s -X DELETE -H "Authorization: JWT ${{ env.DOCKER_HUB_TOKEN }}" "https://hub.docker.com/v2/namespaces/${{ secrets.DOCKERHUB_JIERKA_USERNAME }}/repositories/${{ env.DOCKER_REPO }}/tags/v${{ steps.get_version.outputs.VERSION }}-${{ env.PLATFORM_2 }}"
 
       - name: Delete old armv7 tag
         run: |
-          curl -s -X DELETE -H "Authorization: JWT ${{ env.DOCKER_HUB_TOKEN }}" "https://hub.docker.com/v2/namespaces/${{ secrets.DOCKER_JIERKA_USERNAME }}/repositories/${{ env.DOCKER_REPO }}/tags/v${{ steps.get_version.outputs.VERSION }}-${{ env.PLATFORM_3 }}"
+          curl -s -X DELETE -H "Authorization: JWT ${{ env.DOCKER_HUB_TOKEN }}" "https://hub.docker.com/v2/namespaces/${{ secrets.DOCKERHUB_JIERKA_USERNAME }}/repositories/${{ env.DOCKER_REPO }}/tags/v${{ steps.get_version.outputs.VERSION }}-${{ env.PLATFORM_3 }}"

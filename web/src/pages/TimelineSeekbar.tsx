@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { FileItem, FileFilters } from '@/types'
-import { formatDate, formatDateTime, getFileIcon, formatFileSize, isDirectory } from '@/lib/utils'
+import { formatDate, formatDateTime, getFileIconByMime, formatFileSize, isDirectory } from '@/lib/utils'
 import { useTranslation } from '@/lib/translations'
 import Header from '@/components/Header/Header'
 import { ViewMode } from '@/components/ViewSwitcher/ViewSwitcher'
@@ -754,7 +754,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
     // Autres types
     return (
       <EmptyPreview>
-        <EmptyPreviewIcon>{getFileIcon(selectedFile.ext)}</EmptyPreviewIcon>
+        <EmptyPreviewIcon>{getFileIconByMime(selectedFile.mime)}</EmptyPreviewIcon>
         <EmptyPreviewTitle>{selectedFile.name}</EmptyPreviewTitle>
         <EmptyPreviewText>{t('seekbar.previewNotAvailable')}</EmptyPreviewText>
         {!isDirectory(selectedFile) && (
@@ -925,7 +925,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                   onClick={() => handleFileSelect(file, index)}
                 >
                   <FileItemName>
-                    <FileItemIcon>{getFileIcon(file.ext)}</FileItemIcon>
+                    <FileItemIcon>{getFileIconByMime(file.mime)}</FileItemIcon>
                     {file.name}
                   </FileItemName>
                   <FileItemDetails>

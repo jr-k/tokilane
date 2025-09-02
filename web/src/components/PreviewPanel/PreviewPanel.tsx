@@ -9,7 +9,7 @@ import {
   isImageFile, 
   isPdfFile, 
   isTextFile,
-  getFileIcon,
+  getFileIconByMime,
   isDirectory
 } from '@/lib/utils'
 import { getFile } from '@/lib/api'
@@ -218,7 +218,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
         <ModalHeader>
           <HeaderContent>
             <FileInfo>
-              <FileIcon>{getFileIcon(detailedFile.ext)}</FileIcon>
+              <FileIcon>{getFileIconByMime(detailedFile.mime)}</FileIcon>
               <FileDetails>
                 <FileName title={detailedFile.name}>{detailedFile.name}</FileName>
                 <FileMetadata>
@@ -346,7 +346,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
             
             {!detailedFile.has_preview && (
               <UnsupportedContainer>
-                <UnsupportedIcon>{getFileIcon(detailedFile.ext)}</UnsupportedIcon>
+                <UnsupportedIcon>{getFileIconByMime(detailedFile.mime)}</UnsupportedIcon>
                 <UnsupportedTitle>{t('preview.previewNotSupportedTitle')}</UnsupportedTitle>
                 <UnsupportedText>
                   {t('preview.previewNotSupportedText')}

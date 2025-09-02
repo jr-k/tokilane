@@ -1,6 +1,6 @@
 import React from 'react'
 import { FileItem } from '@/types'
-import { formatTime, getFileIcon, getThumbnailUrl } from '@/lib/utils'
+import { formatTime, getFileIconByMime, getThumbnailUrl } from '@/lib/utils'
 import {
   CardContainer,
   ImageContainer,
@@ -61,7 +61,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, onClick, className }) 
         ) : null}
         
         <FallbackContainer className={file.has_thumbnail && file.thumb_url ? 'hidden' : ''}>
-          <FallbackIcon>{getFileIcon(file.ext)}</FallbackIcon>
+          <FallbackIcon>{getFileIconByMime(file.mime)}</FallbackIcon>
           <FallbackText>{file.ext.replace('.', '').toUpperCase()}</FallbackText>
         </FallbackContainer>
 

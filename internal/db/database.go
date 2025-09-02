@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -86,6 +87,15 @@ func (r *FileItemRepository) GetByPath(path string) (*FileItem, error) {
 	return &item, nil
 }
 
+// GetByPathIncludingDeleted retrieves a file by its path, including soft-deleted records
+func (r *FileItemRepository) GetByPathIncludingDeleted(path string) (*FileItem, error) {
+	var item FileItem
+	if err := r.db.Unscoped().First(&item, "abs_path = ?", path).Error; err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
 // GetByHash retrieves a file by its hash
 func (r *FileItemRepository) GetByHash(hash string) (*FileItem, error) {
 	var item FileItem
@@ -100,6 +110,16 @@ func (r *FileItemRepository) Update(item *FileItem) error {
 	return r.db.Save(item).Error
 }
 
+// UpdateUnscoped updates a file, including soft-deleted records (for resurrection)
+func (r *FileItemRepository) UpdateUnscoped(item *FileItem) error {
+	return r.db.Unscoped().Save(item).Error
+}
+
+// UpdateThumbnailPath updates only the thumbnail path for a file
+func (r *FileItemRepository) UpdateThumbnailPath(id string, thumbPath string) error {
+	return r.db.Model(&FileItem{}).Where("id = ?", id).Update("thumb_path", thumbPath).Error
+}
+
 // Delete removes a file
 func (r *FileItemRepository) Delete(id string) error {
 	return r.db.Delete(&FileItem{}, "id = ?", id).Error
@@ -108,6 +128,48 @@ func (r *FileItemRepository) Delete(id string) error {
 // DeleteByPath removes a file by its path
 func (r *FileItemRepository) DeleteByPath(path string) error {
 	return r.db.Delete(&FileItem{}, "abs_path = ?", path).Error
+}
+
+// CreateBatch creates multiple files in a single transaction
+func (r *FileItemRepository) CreateBatch(items []*FileItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	return r.db.CreateInBatches(items, 100).Error // Process in batches of 100
+}
+
+// UpdateBatch updates multiple files in a single transaction
+func (r *FileItemRepository) UpdateBatch(items []*FileItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			if err := tx.Save(item).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// GetExistingPaths returns a map of existing paths with their FileItems
+func (r *FileItemRepository) GetExistingPaths(paths []string) (map[string]*FileItem, error) {
+	if len(paths) == 0 {
+		return make(map[string]*FileItem), nil
+	}
+	
+	var items []FileItem
+	if err := r.db.Where("abs_path IN ?", paths).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	
+	result := make(map[string]*FileItem)
+	for i := range items {
+		result[items[i].AbsPath] = &items[i]
+	}
+	
+	return result, nil
 }
 
 // ListFilters represents filters for the file list
@@ -240,4 +302,48 @@ func (r *FileItemRepository) GetGroupedByDate(filters ListFilters) (map[string][
 	}
 
 	return grouped, nil
+}
+
+// Reset drops all tables and recreates them (WARNING: destroys all data)
+func (db *Database) Reset() error {
+	log.Println("⚠️  Resetting database - all data will be lost!")
+	
+	// Drop all tables
+	if err := db.Migrator().DropTable(&FileItem{}); err != nil {
+		log.Printf("Warning: Could not drop FileItem table: %v", err)
+	}
+	
+	// Recreate tables with migrations
+	if err := db.AutoMigrate(&FileItem{}); err != nil {
+		return fmt.Errorf("failed to recreate tables: %w", err)
+	}
+	
+	log.Println("✅ Database reset completed")
+	return nil
+}
+
+// ResetWithThumbnails resets the database and cleans up thumbnails
+func (db *Database) ResetWithThumbnails(thumbsPath string) error {
+	log.Println("⚠️  Resetting database and cleaning thumbnails - all data will be lost!")
+	
+	// First reset the database
+	if err := db.Reset(); err != nil {
+		return err
+	}
+	
+	// Clean up thumbnails directory
+	if thumbsPath != "" {
+		log.Printf("Cleaning thumbnails directory: %s", thumbsPath)
+		if err := os.RemoveAll(thumbsPath); err != nil {
+			log.Printf("Warning: Could not remove thumbnails directory: %v", err)
+		} else {
+			// Recreate the thumbnails directory
+			if err := os.MkdirAll(thumbsPath, 0755); err != nil {
+				log.Printf("Warning: Could not recreate thumbnails directory: %v", err)
+			}
+		}
+	}
+	
+	log.Println("✅ Database and thumbnails reset completed")
+	return nil
 }

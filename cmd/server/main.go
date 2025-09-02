@@ -8,8 +8,8 @@ import (
 	"syscall"
 
 	"tokilane/internal/config"
-	"tokilane/internal/db"
 	"tokilane/internal/content"
+	"tokilane/internal/db"
 	"tokilane/internal/web"
 )
 
@@ -36,11 +36,21 @@ func main() {
 		}
 	}()
 
+	// Reset database if requested
+	if cfg.ResetDB {
+		thumbsPath := filepath.Join(filepath.Dir(cfg.DBPath), "thumbs")
+		if err := database.ResetWithThumbnails(thumbsPath); err != nil {
+			log.Fatalf("Error resetting database: %v", err)
+		}
+	}
+
 	// Initialize file indexer
 	indexerConfig := &content.IndexerConfig{
 		RootPath:   cfg.FilesRoot,
 		ThumbsPath: filepath.Join(filepath.Dir(cfg.DBPath), "thumbs"),
 		Debug:      cfg.Debug,
+		ScanDepth:  cfg.ScanDepth,
+		ScanWorkers: cfg.ScanWorkers,
 	}
 
 	indexer, err := content.NewIndexer(indexerConfig, database)

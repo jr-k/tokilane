@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { FileItem, FileFilters } from '@/types'
-import { formatDate, getFileIcon, formatFileSize } from '@/lib/utils'
+import { formatDate, formatDateTime, formatTime, getFileIcon, formatFileSize, isDirectory } from '@/lib/utils'
 import { useTranslation } from '@/lib/translations'
 import Header from '@/components/Header/Header'
 import { ViewMode } from '@/components/ViewSwitcher/ViewSwitcher'
@@ -482,7 +482,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
     }
   }, [])
 
-  // Utilitaire pour extraire tous les fichiers
+  // Utilitaire pour extraire tous les fichiers (exclut les dossiers)
   const getAllFilesFromData = (data: TimelineData): FileItem[] => {
     if (!data?.timeline) return []
     
@@ -490,12 +490,23 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
     const dates = Object.keys(data.timeline).sort()
     
     for (const date of dates) {
-      allFiles.push(...data.timeline[date])
+      // Filtrer les dossiers
+      const filesOnly = data.timeline[date].filter(file => !isDirectory(file))
+      allFiles.push(...filesOnly)
     }
     
     return allFiles.sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
+  }
+
+  // Utilitaire pour obtenir les fichiers avec des dates valides (exclut les dates par défaut comme 0001-01-01)
+  const getFilesWithValidDates = (files: FileItem[]): FileItem[] => {
+    return files.filter(file => {
+      const date = new Date(file.created_at)
+      // Exclure les dates antérieures à 1970 (epoch Unix) qui sont probablement des valeurs par défaut
+      return date.getFullYear() >= 1970
+    })
   }
 
   // Charger le contenu textuel d'un fichier
@@ -516,7 +527,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
   // Effect to load data on mount
   useEffect(() => {
     loadTimelineData()
-  }, [loadTimelineData])
+  }, []) // Removed loadTimelineData from dependencies to prevent infinite loop
 
   // Effet pour charger le contenu quand le fichier sélectionné change
   useEffect(() => {
@@ -593,7 +604,8 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
   // Grouper les fichiers par date pour les badges
   const getFilesByDate = useCallback(() => {
     const filesByDate: { [date: string]: FileItem[] } = {}
-    allFiles.forEach(file => {
+    const validFiles = getFilesWithValidDates(allFiles)
+    validFiles.forEach(file => {
       const date = file.created_at.split('T')[0] // YYYY-MM-DD
       if (!filesByDate[date]) {
         filesByDate[date] = []
@@ -607,9 +619,10 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
 
   // Fonctions pour la timeline temporelle
   const getTimeRange = useCallback(() => {
-    if (allFiles.length === 0) return { start: new Date(), end: new Date() }
+    const validFiles = getFilesWithValidDates(allFiles)
+    if (validFiles.length === 0) return { start: new Date(), end: new Date() }
     
-    const dates = allFiles.map(f => new Date(f.created_at))
+    const dates = validFiles.map(f => new Date(f.created_at))
     return {
       start: new Date(Math.min(...dates.map(d => d.getTime()))),
       end: new Date(Math.max(...dates.map(d => d.getTime())))
@@ -621,43 +634,54 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
     const markers: Date[] = []
     
     const current = new Date(start)
+    let iterations = 0
+    const maxIterations = 10000 // Prevent infinite loops
     
     switch (timeResolution) {
       case 'second':
-        while (current <= end) {
+        while (current <= end && iterations < maxIterations) {
           markers.push(new Date(current))
           current.setSeconds(current.getSeconds() + 1)
+          iterations++
         }
         break
       case 'minute':
         current.setSeconds(0)
-        while (current <= end) {
+        while (current <= end && iterations < maxIterations) {
           markers.push(new Date(current))
           current.setMinutes(current.getMinutes() + 1)
+          iterations++
         }
         break
       case 'hour':
         current.setMinutes(0, 0)
-        while (current <= end) {
+        while (current <= end && iterations < maxIterations) {
           markers.push(new Date(current))
           current.setHours(current.getHours() + 1)
+          iterations++
         }
         break
       case 'day':
         current.setHours(0, 0, 0, 0)
-        while (current <= end) {
+        while (current <= end && iterations < maxIterations) {
           markers.push(new Date(current))
           current.setDate(current.getDate() + 1)
+          iterations++
         }
         break
       case 'month':
         current.setDate(1)
         current.setHours(0, 0, 0, 0)
-        while (current <= end) {
+        while (current <= end && iterations < maxIterations) {
           markers.push(new Date(current))
           current.setMonth(current.getMonth() + 1)
+          iterations++
         }
         break
+    }
+    
+    if (iterations >= maxIterations) {
+      console.warn('TimelineSeekbar: generateTimeMarkers hit max iterations limit')
     }
     
     return markers
@@ -733,11 +757,13 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
         <EmptyPreviewIcon>{getFileIcon(selectedFile.ext)}</EmptyPreviewIcon>
         <EmptyPreviewTitle>{selectedFile.name}</EmptyPreviewTitle>
         <EmptyPreviewText>{t('seekbar.previewNotAvailable')}</EmptyPreviewText>
-        <DownloadButton 
-          onClick={() => window.open(`/files/${selectedFile.id}/preview`, '_blank')}
-        >
-          {t('seekbar.downloadFile')}
-        </DownloadButton>
+        {!isDirectory(selectedFile) && (
+          <DownloadButton 
+            onClick={() => window.open(`/files/${selectedFile.id}/preview`, '_blank')}
+          >
+            {t('seekbar.downloadFile')}
+          </DownloadButton>
+        )}
       </EmptyPreview>
     )
   }
@@ -775,7 +801,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                 <FileInfoOverlay>
                   <FileName>{selectedFile.name}</FileName>
                   <FileDetails>
-                    {formatDate(selectedFile.created_at)} • {formatFileSize(selectedFile.size)}<br/>
+                    {formatDateTime(selectedFile.created_at)} • {formatFileSize(selectedFile.size)}<br/>
                     {selectedFile.mime}
                   </FileDetails>
                 </FileInfoOverlay>
@@ -802,11 +828,17 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                   </ResolutionButton>
                 ))}
               </ResolutionControls>
-              {allFiles.length > 0 && (
-                <TimelineStats>
-                  {formatDate(allFiles[0].created_at)} → {formatDate(allFiles[allFiles.length - 1].created_at)}
-                </TimelineStats>
-              )}
+              {(() => {
+                const validFiles = getFilesWithValidDates(allFiles)
+                return validFiles.length > 0 && (
+                  <TimelineStats>
+                    {validFiles.length === 1 
+                      ? formatDate(validFiles[0].created_at)
+                      : `${formatDate(validFiles[0].created_at)} → ${formatDate(validFiles[validFiles.length - 1].created_at)}`
+                    }
+                  </TimelineStats>
+                )
+              })()}
             </TimelineHeader>
             
             <SeekbarContainer>
@@ -831,7 +863,12 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                 ))}
                 
                 {/* Fichiers positionnés par temps */}
-                {allFiles.map((file, index) => {
+                {allFiles.filter(file => {
+                  const date = new Date(file.created_at)
+                  return date.getFullYear() >= 1970
+                }).map((file) => {
+                  // Trouver l'index original du fichier dans allFiles
+                  const index = allFiles.findIndex(f => f.id === file.id)
                   const fileTime = new Date(file.created_at)
                   const position = getPositionFromTime(fileTime)
                   const isSelected = selectedIndex === index
@@ -860,7 +897,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                         $position={position}
                       >
                         {file.name}<br/>
-                        {formatDate(file.created_at)}
+                        {formatDateTime(file.created_at)}
                         {filesOnSameDate > 1 && ` (${filesOnSameDate} ${t('time.filesThisDay')})`}
                       </FileTooltip>
                     </React.Fragment>
@@ -895,7 +932,7 @@ const TimelineSeekbar: React.FC<TimelineSeekbarProps> = ({
                     {formatFileSize(file.size)} • {file.mime}
                   </FileItemDetails>
                   <FileItemDate>
-                    {formatDate(file.created_at)}
+                    {formatDateTime(file.created_at)}
                   </FileItemDate>
                 </FileListItem>
               )

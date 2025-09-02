@@ -56,17 +56,61 @@ func DetectMime(path string) string {
 	}
 }
 
-// ComputeHash computes the SHA256 hash of a file
+// ComputeHash computes a fast hash based on file metadata and partial content
 func ComputeHash(path string) (string, error) {
-	file, err := os.Open(path)
+	stat, err := os.Stat(path)
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
 
+	// Create hash from metadata (size, mod time, path)
 	hash := sha256.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return "", err
+	
+	// Write file metadata to hash
+	hash.Write([]byte(path))
+	hash.Write([]byte(fmt.Sprintf("%d", stat.Size())))
+	hash.Write([]byte(fmt.Sprintf("%d", stat.ModTime().UnixNano())))
+	
+	// For small files (< 1MB), hash the entire content
+	// For larger files, hash only the first and last 64KB
+	if stat.Size() <= 1024*1024 {
+		file, err := os.Open(path)
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+		
+		if _, err := io.Copy(hash, file); err != nil {
+			return "", err
+		}
+	} else {
+		// Hash first 64KB and last 64KB for large files
+		file, err := os.Open(path)
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+		
+		// Read first 64KB
+		buffer := make([]byte, 65536) // 64KB
+		n, err := file.Read(buffer)
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+		hash.Write(buffer[:n])
+		
+		// Read last 64KB if file is large enough
+		if stat.Size() > 131072 { // > 128KB
+			_, err = file.Seek(-65536, io.SeekEnd) // Seek to 64KB before end
+			if err != nil {
+				return "", err
+			}
+			n, err = file.Read(buffer)
+			if err != nil && err != io.EOF {
+				return "", err
+			}
+			hash.Write(buffer[:n])
+		}
 	}
 
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil

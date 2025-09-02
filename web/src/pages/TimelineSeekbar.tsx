@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { FileItem, FileFilters } from '@/types'
-import { formatDate, formatDateTime, formatTime, getFileIcon, formatFileSize, isDirectory } from '@/lib/utils'
+import { formatDate, formatDateTime, getFileIcon, formatFileSize, isDirectory } from '@/lib/utils'
 import { useTranslation } from '@/lib/translations'
 import Header from '@/components/Header/Header'
 import { ViewMode } from '@/components/ViewSwitcher/ViewSwitcher'

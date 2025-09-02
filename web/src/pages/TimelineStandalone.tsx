@@ -113,7 +113,7 @@ const TimelineStandalone: React.FC<TimelineStandaloneProps> = ({
     }
 
     loadTimelineData(initialFilters)
-  }, [])
+  }, [loadTimelineData]) // Added loadTimelineData to dependencies but it's stable due to useCallback
 
   // Gestion des changements de filtres
   const handleFiltersChange = useCallback((newFilters: FileFilters) => {

@@ -22,6 +22,7 @@ const SimpleTimeline: React.FC = () => {
         setHasLoaded(true)
       } catch (error) {
         console.error('Erreur:', error)
+        setHasLoaded(true) // Mark as loaded even on error to prevent infinite retries
       } finally {
         setLoading(false)
       }

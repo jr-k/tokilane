@@ -15,7 +15,7 @@ export const formatDate = (dateString: string): string => {
 export const formatDateTime = (dateString: string): string => {
   try {
     const date = parseISO(dateString)
-    return format(date, 'dd/MM/yyyy à HH:mm', { locale: fr })
+    return format(date, 'dd/MM/yyyy à HH:mm:ss', { locale: fr })
   } catch {
     return dateString
   }
@@ -24,7 +24,7 @@ export const formatDateTime = (dateString: string): string => {
 export const formatTime = (dateString: string): string => {
   try {
     const date = parseISO(dateString)
-    return format(date, 'HH:mm', { locale: fr })
+    return format(date, 'HH:mm:ss', { locale: fr })
   } catch {
     return dateString
   }
@@ -199,6 +199,22 @@ export const parseQueryString = (search: string): Record<string, string> => {
   }
   
   return result
+}
+
+// Vérifier si un FileItem est probablement un dossier
+export const isDirectory = (file: any): boolean => {
+  // Un dossier a généralement :
+  // - Pas d'extension ou extension vide
+  // - Taille de 0 ou très petite
+  // - MIME type par défaut ou spécifique aux dossiers
+  return (
+    (!file.ext || file.ext === '') &&
+    file.size === 0 &&
+    (file.mime === 'application/octet-stream' || 
+     file.mime === 'inode/directory' || 
+     file.mime === 'application/x-directory' ||
+     !file.mime)
+  )
 }
 
 // Classe conditionnelle (simple alternative à clsx)

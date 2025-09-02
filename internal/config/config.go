@@ -17,6 +17,9 @@ type Config struct {
 	Debug          bool
 	MaxUploadSize  int64 // in MB
 	AppLang        string // Application language
+	ScanDepth      int    // Directory scanning depth (0 = unlimited, 1 = root only, 2 = root+1 level, etc.)
+	ScanWorkers    int    // Number of parallel workers for scanning (0 = auto)
+	ResetDB        bool   // Reset database on startup
 }
 
 func Load() *Config {
@@ -32,6 +35,9 @@ func Load() *Config {
 		Debug:         getEnvBool("DEBUG", true),
 		MaxUploadSize: getEnvInt64("MAX_UPLOAD_SIZE", 100), // 100MB by default
 		AppLang:       getEnv("APP_LANG", "en"), // English by default
+		ScanDepth:     getEnvInt("SCAN_DEPTH", 0), // 0 = unlimited depth
+		ScanWorkers:   getEnvInt("SCAN_WORKERS", 0), // 0 = auto (CPU count)
+		ResetDB:       getEnvBool("RESET_DB", true), // Reset database on startup
 	}
 }
 
@@ -54,6 +60,15 @@ func getEnvBool(key string, defaultValue bool) bool {
 func getEnvInt64(key string, defaultValue int64) int64 {
 	if value := os.Getenv(key); value != "" {
 		if parsed, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return parsed
+		}
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
 			return parsed
 		}
 	}

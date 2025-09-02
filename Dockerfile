@@ -56,13 +56,14 @@ RUN CGO_ENABLED=1 GOOS=linux \
 # Step 3: Final image (using Debian slim for glibc compatibility)
 FROM debian:bullseye-slim
 
-# Install runtime dependencies including SQLite libraries
+# Install runtime dependencies including SQLite libraries and gosu
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tzdata \
     sqlite3 \
     libsqlite3-0 \
     wget \
+    gosu \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -81,12 +82,15 @@ COPY --from=frontend-builder /app/dist ./dist
 # Copy index.html for Inertia
 COPY --from=frontend-builder /app/web/index.html ./web/
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Create necessary directories with the correct permissions
 RUN mkdir -p data/thumbs files && \
     chown -R appuser:appgroup /app
 
-# Change to non-root user
-USER appuser
+# Don't change to non-root user here - let entrypoint handle it
 
 # Expose port
 EXPOSE 1323
@@ -103,4 +107,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/ || exit 1
 
 # Default command
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["./tokilane"]

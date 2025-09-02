@@ -30,7 +30,7 @@ export const formatTime = (dateString: string): string => {
   }
 }
 
-// Déterminer le type de fichier par extension
+// Déterminer le type de fichier par extension (legacy)
 export const getFileType = (extension: string): FileType => {
   const ext = extension.toLowerCase()
   
@@ -43,9 +43,70 @@ export const getFileType = (extension: string): FileType => {
   return 'other'
 }
 
-// Obtenir l'icône d'un fichier
+// Déterminer le type de fichier par MIME type
+export const getFileTypeByMime = (mimeType: string): FileType => {
+  const mime = mimeType.toLowerCase()
+  
+  // Images
+  if (mime.startsWith('image/')) {
+    return 'image'
+  }
+  
+  // PDF
+  if (mime === 'application/pdf') {
+    return 'pdf'
+  }
+  
+  // Texte
+  if (mime.startsWith('text/') || mime === 'text/markdown' || mime === 'application/xml') {
+    return 'text'
+  }
+  
+  // Vidéos
+  if (mime.startsWith('video/')) {
+    return 'video'
+  }
+  
+  // Audio
+  if (mime.startsWith('audio/')) {
+    return 'audio'
+  }
+  
+  // Documents Office
+  if (mime.includes('word') || 
+      mime.includes('excel') || 
+      mime.includes('powerpoint') ||
+      mime.includes('spreadsheet') ||
+      mime.includes('presentation') ||
+      mime === 'application/msword' ||
+      mime === 'application/vnd.ms-excel' ||
+      mime === 'application/vnd.ms-powerpoint') {
+    return 'document'
+  }
+  
+  // Archives
+  if (mime.includes('zip') || 
+      mime.includes('rar') || 
+      mime.includes('7z') || 
+      mime.includes('tar') || 
+      mime.includes('gzip') ||
+      mime === 'application/x-rar-compressed' ||
+      mime === 'application/x-7z-compressed') {
+    return 'archive'
+  }
+  
+  return 'other'
+}
+
+// Obtenir l'icône d'un fichier par extension (legacy)
 export const getFileIcon = (extension: string): string => {
   const type = getFileType(extension)
+  return FILE_TYPE_ICONS[type]
+}
+
+// Obtenir l'icône d'un fichier par MIME type
+export const getFileIconByMime = (mimeType: string): string => {
+  const type = getFileTypeByMime(mimeType)
   return FILE_TYPE_ICONS[type]
 }
 

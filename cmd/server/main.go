@@ -9,7 +9,7 @@ import (
 
 	"tokilane/internal/config"
 	"tokilane/internal/db"
-	"tokilane/internal/files"
+	"tokilane/internal/content"
 	"tokilane/internal/web"
 )
 
@@ -37,13 +37,13 @@ func main() {
 	}()
 
 	// Initialize file indexer
-	indexerConfig := &files.IndexerConfig{
+	indexerConfig := &content.IndexerConfig{
 		RootPath:   cfg.FilesRoot,
 		ThumbsPath: filepath.Join(filepath.Dir(cfg.DBPath), "thumbs"),
 		Debug:      cfg.Debug,
 	}
 
-	indexer, err := files.NewIndexer(indexerConfig, database)
+	indexer, err := content.NewIndexer(indexerConfig, database)
 	if err != nil {
 		log.Fatalf("Error initializing indexer: %v", err)
 	}

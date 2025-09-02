@@ -11,7 +11,7 @@ import (
 
 	"tokilane/internal/config"
 	"tokilane/internal/db"
-	"tokilane/internal/files"
+	"tokilane/internal/content"
 )
 
 // Server represents the web server
@@ -22,7 +22,7 @@ type Server struct {
 }
 
 // NewServer creates a new server
-func NewServer(cfg *config.Config, database *db.Database, indexer *files.Indexer) *Server {
+func NewServer(cfg *config.Config, database *db.Database, indexer *content.Indexer) *Server {
 	e := echo.New()
 	
 	// Echo configuration
@@ -33,7 +33,7 @@ func NewServer(cfg *config.Config, database *db.Database, indexer *files.Indexer
 
 	// Repository and services
 	repo := db.NewFileItemRepository(database)
-	thumbnailSvc := files.NewThumbnailService(cfg.DBPath + "/../thumbs")
+	thumbnailSvc := content.NewThumbnailService(cfg.DBPath + "/../thumbs")
 	
 	// Handlers
 	handlers := NewHandlers(cfg, repo, thumbnailSvc, indexer)

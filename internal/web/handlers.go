@@ -15,19 +15,19 @@ import (
 
 	"tokilane/internal/config"
 	"tokilane/internal/db"
-	"tokilane/internal/files"
+	"tokilane/internal/content"
 )
 
 // Handlers contains all application handlers
 type Handlers struct {
 	config       *config.Config
 	repo         *db.FileItemRepository
-	thumbnailSvc *files.ThumbnailService
-	indexer      *files.Indexer
+	thumbnailSvc *content.ThumbnailService
+	indexer      *content.Indexer
 }
 
 // NewHandlers creates a new handlers instance
-func NewHandlers(cfg *config.Config, repo *db.FileItemRepository, thumbnailSvc *files.ThumbnailService, indexer *files.Indexer) *Handlers {
+func NewHandlers(cfg *config.Config, repo *db.FileItemRepository, thumbnailSvc *content.ThumbnailService, indexer *content.Indexer) *Handlers {
 	return &Handlers{
 		config:       cfg,
 		repo:         repo,
@@ -213,7 +213,7 @@ func (h *Handlers) PreviewFile(c echo.Context) error {
 	}
 
 	// Validate path to prevent path traversal
-	if err := files.ValidatePath(h.config.FilesRoot, item.AbsPath); err != nil {
+	if err := content.ValidatePath(h.config.FilesRoot, item.AbsPath); err != nil {
 		return c.JSON(http.StatusForbidden, map[string]string{
 			"error": "Access denied",
 		})
@@ -330,7 +330,7 @@ func (h *Handlers) uploadSingleFile(fileHeader *multipart.FileHeader, uploadDir 
 	}
 
 	// Check the extension
-	ext := files.GetFileExtension(fileHeader.Filename)
+	ext := content.GetFileExtension(fileHeader.Filename)
 	if !h.config.IsAllowedExtension(ext) {
 		return "", fmt.Errorf("extension not allowed: %s", ext)
 	}

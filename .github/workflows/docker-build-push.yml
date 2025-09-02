@@ -29,8 +29,8 @@ jobs:
         ls -la
         echo "Checking internal directory..."
         ls -la internal/
-        echo "Checking if internal/files exists..."
-        ls -la internal/files/
+        echo "Checking if internal/content exists..."
+        ls -la internal/content/
         echo "Verifying go.mod..."
         cat go.mod
 

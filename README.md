@@ -11,13 +11,12 @@ It may be useful to inspect remote files on a SSH session.
 ---
 
 ## 📷 Screenshots
-<div align="center" width="100%">
+<div align="left" width="100%">
+    <h4>Timeline View</h4>
     <img src="./docs/screenshots/t1.png" width="512" alt="" />
+    <h4>Explorer View</h4>
     <img src="./docs/screenshots/t2.png" width="512" alt="" />
 </div>
-
-![Screenshot 1](./docs/screenshots/t1.png)
-![Screenshot 2](./docs/screenshots/t2.png)
 
 ---
 

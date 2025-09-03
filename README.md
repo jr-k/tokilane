@@ -21,7 +21,10 @@ It may be useful to inspect remote files on a SSH session.
 ---
 
 ## 🛠️ Quick Start
-Run Tokilane with Docker (replace `./` with your target directory):
+Run Tokilane with Docker.
+
+* Replace `./` with your target directory
+* In some system `./` is not allowed using docker, you should use $PWD:/app/files instead
 
 ```bash
 docker run -d \

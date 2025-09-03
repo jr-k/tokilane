@@ -11,7 +11,7 @@ It may be useful to inspect remote files on a SSH session.
 ---
 
 ## 🛠️ Quick Start
-Run Tokilane with Docker (replace `$PWD` with your target directory):
+Run Tokilane with Docker (replace `./` with your target directory):
 
 ```bash
 docker run -d \
@@ -19,7 +19,7 @@ docker run -d \
   -p 1323:1323 \
   -e SCAN_DEPTH=1 \
   -v /tmp/tokilane-data:/app/data \
-  -v $PWD:/app/files \
+  -v ./:/app/files \
   jierka/tokilane:latest
 ```
 
@@ -36,7 +36,7 @@ docker rm tokilane -f ; docker run \
 -p 1323:1323 \
 -e SCAN_DEPTH=1 \
 -v /tmp/tokilane-data:/app/data \
--v $PWD:/app/files \
+-v ./:/app/files \
 jierka/tokilane:latest
 ```
   
@@ -51,7 +51,7 @@ docker rm tokilane -f ; docker run -d \
 -p 1323:1323 \
 -e SCAN_DEPTH=1 \
 -v /tmp/tokilane-data:/app/data \
--v $PWD:/app/files \
+-v ./:/app/files \
 jierka/tokilane:latest ; docker logs tokilane -f
 ```
 
@@ -81,19 +81,6 @@ SCAN_WORKERS=0
 # Reset database on startup:
 #   WARNING: destroys all index and thumbnails
 RESET_DB=true
-```
-
-To apply these options, pass them with -e in your Docker run command:
-```bash
-docker run -d \
-  --name tokilane \
-  -p 1323:1323 \
-  -e APP_LANG=fr \
-  -e SCAN_DEPTH=2 \
-  -v /tmp/tokilane-data:/app/data \
-  -v $PWD:/app/files \
-  jierka/tokilane:latest
-
 ```
 
 ---

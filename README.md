@@ -17,6 +17,7 @@ Run Tokilane with Docker (replace `$PWD` with your target directory):
 docker run -d \
   --name tokilane \
   -p 1323:1323 \
+  -e SCAN_DEPTH=1 \
   -v /tmp/tokilane-data:/app/data \
   -v $PWD:/app/files \
   jierka/tokilane:latest

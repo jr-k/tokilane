@@ -25,6 +25,38 @@ docker run -d \
 
 Then open [http://localhost:1323](http://localhost:1323) in your browser.
 
+### Qucik commands
+
+<details>
+  <summary>Undetached</summary>
+  
+```bash
+docker rm tokilane -f ; docker run \
+--name tokilane \
+-p 1323:1323 \
+-e SCAN_DEPTH=1 \
+-v /tmp/tokilane-data:/app/data \
+-v $PWD:/app/files \
+jierka/tokilane:latest
+```
+  
+</details>
+
+<details>
+  <summary>Detached + Logs</summary>
+  
+```bash
+docker rm tokilane -f ; docker run -d \
+--name tokilane \
+-p 1323:1323 \
+-e SCAN_DEPTH=1 \
+-v /tmp/tokilane-data:/app/data \
+-v $PWD:/app/files \
+jierka/tokilane:latest ; docker logs tokilane -f
+```
+
+</details>
+
 ---
 ## ⚙️ Configuration
 You can customize Tokilane using environment variables:

@@ -10,6 +10,17 @@ It may be useful to inspect remote files on a SSH session.
 
 ---
 
+## 📷 Screenshots
+<div align="center" width="100%">
+    <img src="./docs/screenshots/t1.png" width="512" alt="" />
+    <img src="./docs/screenshots/t2.png" width="512" alt="" />
+</div>
+
+![Screenshot 1](./docs/screenshots/t1.png)
+![Screenshot 2](./docs/screenshots/t2.png)
+
+---
+
 ## 🛠️ Quick Start
 Run Tokilane with Docker (replace `./` with your target directory):
 

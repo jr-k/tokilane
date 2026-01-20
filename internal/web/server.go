@@ -2,6 +2,7 @@ package web
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -37,9 +38,39 @@ func NewServer(cfg *config.Config, database *db.Database, indexer *content.Index
 	
 	// Configure IP Extractor for trusted proxies
 	if len(cfg.TrustedProxies) > 0 {
-		e.IPExtractor = echo.ExtractIPFromXFFHeader(
-			echo.TrustIPRange(cfg.TrustedProxies...),
-		)
+		var trustedIPs []*net.IPNet
+		for _, cidr := range cfg.TrustedProxies {
+			// Skip empty or wildcard (wildcard handled by default if not set, or unsafe)
+			if cidr == "" || cidr == "*" {
+				continue
+			}
+			
+			_, ipnet, err := net.ParseCIDR(cidr)
+			if err != nil {
+				// Try parsing as single IP
+				ip := net.ParseIP(cidr)
+				if ip != nil {
+					// Convert single IP to /32 or /128 CIDR
+					mask := 32
+					if ip.To4() == nil {
+						mask = 128
+					}
+					ipnet = &net.IPNet{IP: ip, Mask: net.CIDRMask(mask, mask)}
+				} else {
+					log.Printf("Warning: Invalid trusted proxy CIDR ignored: %s", cidr)
+					continue
+				}
+			}
+			trustedIPs = append(trustedIPs, ipnet)
+		}
+
+		if len(trustedIPs) > 0 {
+			trustOptions := make([]echo.TrustOption, len(trustedIPs))
+			for i, ipNet := range trustedIPs {
+				trustOptions[i] = echo.TrustIPRange(ipNet)
+			}
+			e.IPExtractor = echo.ExtractIPFromXFFHeader(trustOptions...)
+		}
 	}
 
 	// Handlers

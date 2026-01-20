@@ -21,22 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libc6-dev \
     libsqlite3-dev \
-    build-essential \
     curl \
     tar \
     bash \
     wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Install SQLite from source for better compatibility and latest version
-RUN curl -L https://www.sqlite.org/2024/sqlite-autoconf-3470000.tar.gz | tar xz \
-    && cd sqlite-autoconf-3470000 \
-    && ./configure --prefix=/usr/local \
-    && make \
-    && make install \
-    && cd .. \
-    && rm -rf sqlite-autoconf-3470000
 
 WORKDIR /app
 
@@ -46,11 +36,10 @@ RUN go mod download
 
 COPY . .
 
-# Build application with proper SQLite linking
+# Build application
 RUN CGO_ENABLED=1 GOOS=linux \
-    PKG_CONFIG_PATH=/usr/local/lib/pkgconfig \
     go build -a -installsuffix cgo \
-    -tags "sqlite_omit_load_extension sqlite_foreign_keys sqlite_stat4" \
+    -tags "sqlite_omit_load_extension sqlite_foreign_keys" \
     -o tokilane cmd/server/main.go
 
 # Step 3: Final image (using Debian slim for glibc compatibility)

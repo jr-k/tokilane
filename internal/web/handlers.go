@@ -14,8 +14,8 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"tokilane/internal/config"
-	"tokilane/internal/db"
 	"tokilane/internal/content"
+	"tokilane/internal/db"
 )
 
 // Handlers contains all application handlers
@@ -95,7 +95,7 @@ func (h *Handlers) GetTimelineData(c echo.Context) error {
 	for date, items := range groupedFiles {
 		var responseItems []db.FileItemResponse
 		for _, item := range items {
-			responseItems = append(responseItems, item.ToResponse())
+			responseItems = append(responseItems, item.ToResponse(h.config.BaseURL))
 		}
 		timelineData[date] = responseItems
 	}
@@ -128,6 +128,7 @@ func (h *Handlers) GetAppConfig(c echo.Context) error {
 		"upload":       h.config.EnableUpload,
 		"files_root":   h.config.FilesRoot,
 		"allowed_ext":  h.config.AllowedExt,
+		"base_url":     h.config.BaseURL,
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -147,7 +148,7 @@ func (h *Handlers) ListFiles(c echo.Context) error {
 	// Convert to format response
 	var responseItems []db.FileItemResponse
 	for _, item := range result.Items {
-		responseItems = append(responseItems, item.ToResponse())
+		responseItems = append(responseItems, item.ToResponse(h.config.BaseURL))
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
@@ -171,7 +172,7 @@ func (h *Handlers) GetFile(c echo.Context) error {
 	}
 
 	// Additional information for the details
-	response := item.ToResponse()
+	response := item.ToResponse(h.config.BaseURL)
 	
 	// Add the full path (for copying the path)
 	detailedResponse := map[string]interface{}{

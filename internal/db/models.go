@@ -86,7 +86,7 @@ type FileItemResponse struct {
 }
 
 // ToResponse converts FileItem to FileItemResponse
-func (f *FileItem) ToResponse() FileItemResponse {
+func (f *FileItem) ToResponse(baseURL string) FileItemResponse {
 	resp := FileItemResponse{
 		ID:            f.ID,
 		Name:          f.Name,
@@ -100,7 +100,14 @@ func (f *FileItem) ToResponse() FileItemResponse {
 	}
 	
 	if f.HasThumbnail() {
-		resp.ThumbUrl = "/files/" + f.ID + "/thumb"
+		// Ensure baseURL starts with / if not empty, or handled by caller
+		// But usually baseURL is something like "/app" or empty.
+		// If empty, path is "/files/...". If "/app", path is "/app/files/..."
+		prefix := ""
+		if baseURL != "" {
+			prefix = baseURL
+		}
+		resp.ThumbUrl = prefix + "/files/" + f.ID + "/thumb"
 	}
 	
 	return resp

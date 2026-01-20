@@ -1,7 +1,9 @@
 import { FileFilters, FileListResponse, FileItem, UploadResponse } from '@/types'
 
 // Configuration de base pour les appels API
-const API_BASE = '/api'
+// On utilise une URL relative pour s'adapter au sous-dossier si nécessaire
+// Si window.TOKI_APP_CONFIG est défini, on l'utilise
+const API_BASE = (window as any).TOKI_APP_CONFIG?.apiBase || 'api'
 
 // Classe d'erreur personnalisée pour les erreurs API
 export class ApiError extends Error {
@@ -119,7 +121,8 @@ export const uploadFiles = async (
 // Fonction utilitaire pour télécharger un fichier
 export const downloadFile = async (id: string, filename: string): Promise<void> => {
   try {
-    const response = await fetch(`/files/${id}/preview?download=1`)
+    // Utiliser une URL relative pour s'adapter au sous-dossier
+    const response = await fetch(`files/${id}/preview?download=1`)
     
     if (!response.ok) {
       throw new ApiError(`Erreur lors du téléchargement: ${response.status}`, response.status)

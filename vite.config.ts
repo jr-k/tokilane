@@ -6,6 +6,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   root: './web',
+  base: './', // Use relative paths for assets
   build: {
     outDir: '../dist',
     emptyOutDir: true,

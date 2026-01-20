@@ -10,8 +10,8 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"tokilane/internal/config"
-	"tokilane/internal/db"
 	"tokilane/internal/content"
+	"tokilane/internal/db"
 )
 
 // Server represents the web server
@@ -35,6 +35,13 @@ func NewServer(cfg *config.Config, database *db.Database, indexer *content.Index
 	repo := db.NewFileItemRepository(database)
 	thumbnailSvc := content.NewThumbnailService(cfg.DBPath + "/../thumbs")
 	
+	// Configure IP Extractor for trusted proxies
+	if len(cfg.TrustedProxies) > 0 {
+		e.IPExtractor = echo.ExtractIPFromXFFHeader(
+			echo.TrustIPRange(cfg.TrustedProxies...),
+		)
+	}
+
 	// Handlers
 	handlers := NewHandlers(cfg, repo, thumbnailSvc, indexer)
 

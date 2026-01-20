@@ -20,6 +20,8 @@ type Config struct {
 	ScanDepth      int    // Directory scanning depth (0 = unlimited, 1 = root only, 2 = root+1 level, etc.)
 	ScanWorkers    int    // Number of parallel workers for scanning (0 = auto)
 	ResetDB        bool   // Reset database on startup
+	BaseURL        string // Base URL for the application (e.g. /tokilane)
+	TrustedProxies []string // List of trusted proxies (CIDR)
 }
 
 func Load() *Config {
@@ -38,6 +40,8 @@ func Load() *Config {
 		ScanDepth:     getEnvInt("SCAN_DEPTH", 0), // 0 = unlimited depth
 		ScanWorkers:   getEnvInt("SCAN_WORKERS", 0), // 0 = auto (CPU count)
 		ResetDB:       getEnvBool("RESET_DB", true), // Reset database on startup
+		BaseURL:       strings.TrimSuffix(getEnv("BASE_URL", ""), "/"),
+		TrustedProxies: getEnvSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
 	}
 }
 
